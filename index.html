@@ -187,7 +187,7 @@
     <p>Llena tus datos, elige <b>un solo juego</b> y pulsa <i>Participar</i>.</p>
   </header>
 
-  <div class="banner hide" id="demo"><div><b>Modo de prueba</b><p>Esta página no está conectada al programa del torneo: las inscripciones solo se guardan en este navegador.</p></div></div>
+  <div class="banner hide" id="demo"><div><b>Modo de prueba</b><p>Esta página no está conectada a la base de datos del torneo: las inscripciones solo se guardan en este navegador.</p></div></div>
 
   <section class="card">
     <div class="sec-h"><h2>Inscripción</h2><small>Obligatorio</small></div>
@@ -212,41 +212,23 @@
 </main>
 
 <script src="js/config.js"></script>
+<script src="js/datos.js"></script>
 <script>
 const CONFIG = window.TORNEO || {};
-const DEMO_KEY = "torneo-demo";          // modo de prueba (sin programa): datos solo en este navegador
-let SERVIDOR = false;
-
+const D = window.Datos;
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 $("#ficha").insertAdjacentHTML("beforeend", (CONFIG.fichas || []).map(f => `<option value="${esc(f)}">${esc(f)}</option>`).join(""));
-// ¿Está abierta desde el programa del torneo (server.js)? Si no, funciona en modo de prueba.
-const listo = (async () => {
-  try { const r = await fetch("/api/ping", { cache:"no-store" }); const j = await r.json(); SERVIDOR = !!(j && j.servidor); } catch (e) { SERVIDOR = false; }
-  if (!SERVIDOR) $("#demo").classList.remove("hide");
-})();
+// ¿Dónde se guardan los datos? Si no hay base de datos conectada, funciona en modo de prueba.
+const listo = D.iniciar().then(m => { if (m === "demo") $("#demo").classList.remove("hide"); });
 
 const msg = $("#msg"), btn = $("#go");
 const show = (type, text) => { msg.className = "msg " + type; msg.textContent = text; };
 const clean = v => v.trim().replace(/\s+/g, " ");
 const digits = v => v.replace(/\D/g, "");
-const demoList = () => { try { return JSON.parse(localStorage.getItem(DEMO_KEY)) || []; } catch { return []; } };
-
 $("#juego").addEventListener("change", () => $("#wrap-comp").classList.toggle("hide", $("#juego").value !== "Dominó"));
 
-async function enviar(d){
-  await listo;
-  if (SERVIDOR){
-    const r = await fetch("/api/registro", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(d) });
-    return r.json();
-  }
-  const lista = demoList(), propios = lista.filter(x => x.doc === d.doc).map(x => x.juego);
-  if (propios.includes(d.juego)) return { ok:false, duplicado:true, juego:d.juego };
-  if (d.juego !== "Bingo"){ const otro = propios.find(j => j !== "Bingo"); if (otro) return { ok:false, duplicado:true, juego:otro }; }
-  lista.push({ nombre:d.nombre, ficha:d.ficha, doc:d.doc, juego:d.juego, companero:d.comp, companeroNombre:d.compNombre });
-  localStorage.setItem(DEMO_KEY, JSON.stringify(lista));
-  return { ok:true };
-}
+const enviar = async d => { await listo; return D.registrar(d); };
 
 $("#f").addEventListener("submit", async e => {
   e.preventDefault();

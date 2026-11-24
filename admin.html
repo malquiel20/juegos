@@ -185,7 +185,7 @@
   <div class="card">
     <div class="stat"><div><span class="big" id="in-n">0</span> <span class="mono" style="font-size:10px;color:var(--muted)">INSCRITOS</span></div><span class="chip mute" id="in-src"></span></div>
     <button class="btn sec" id="in-refresh" style="margin-top:12px">↻ Actualizar</button>
-    <a class="link" id="in-csv" href="/api/exportar.csv" download style="display:block;text-align:center;margin-top:10px;text-decoration:none">⬇ Descargar la lista (Excel / CSV)</a>
+    <button class="link" id="in-csv" style="margin-top:10px;width:100%">⬇ Descargar la lista (Excel / CSV)</button>
     <button class="link" id="in-sheet" style="margin-top:6px;width:100%"></button>
   </div>
   <div class="tabs" id="in-tabs" style="margin:0"></div>
@@ -233,14 +233,13 @@
   <button data-go="llaves"><svg viewBox="0 0 24 24"><path d="M3 5h5v5H3zM3 14h5v5H3zM16 9.5h5v5h-5zM8 7.5h3v9H8M11 12h5"/></svg>Llaves</button>
 </div></nav>
 
+<script src="js/config.js"></script>
+<script src="js/datos.js"></script>
 <script>
-/* ===== PROGRAMA DEL TORNEO =====
-   Esta página se conecta al programa (server.js): ahí están la lista de inscritos y todo lo del panel
-   (parejas, llaves, ajedrez, bingo). Si se abre sin el programa, funciona en modo de prueba (solo en este navegador). */
-const DEMO_KEY = "torneo-demo";
-let SERVIDOR = false;
-const api = async (ruta, opciones) => (await fetch("/api/" + ruta, Object.assign({ cache:"no-store" }, opciones))).json();
-async function detectar(){ try { const j = await api("ping"); SERVIDOR = !!(j && j.servidor); } catch (e) { SERVIDOR = false; } }
+/* ===== BASE DE DATOS DEL TORNEO =====
+   Los datos se guardan en Supabase (js/config.js), en el programa local (server.js) o, si no hay ninguno, en
+   modo de prueba (solo este navegador). Eso lo decide js/datos.js. */
+const D = window.Datos;
 
 const $ = (s, r=document) => r.querySelector(s);
 const $$ = (s, r=document) => [...r.querySelectorAll(s)];
@@ -273,34 +272,20 @@ window.addEventListener("hashchange", () => go(location.hash.slice(1)));
 const current = () => location.hash.slice(1) || "inscritos";
 const rerender = () => go(current());
 
-/* ---------- Estado del panel (parejas, llaves, ajedrez, bingo): se guarda en el programa ---------- */
-const LS = "torneo_admin_v1";
+/* ---------- Estado del panel (parejas, llaves, ajedrez, bingo): se guarda en la base de datos ---------- */
 const ESTADO_BASE = () => ({ manual:[], names:{}, mpairs:[], bk:null, chess:null, bingo:null });
 let S = ESTADO_BASE();
-async function cargarEstado(){
-  if (SERVIDOR){ try { const j = await api("estado"); S = Object.assign(ESTADO_BASE(), (j && j.estado) || {}); } catch (e) { /* se queda con el estado actual */ } }
-  else { try { S = Object.assign(ESTADO_BASE(), JSON.parse(localStorage.getItem(LS)) || {}); } catch (e) { S = ESTADO_BASE(); } }
-}
+async function cargarEstado(){ try { S = Object.assign(ESTADO_BASE(), await D.leerEstado()); } catch (e) { /* se queda con el estado actual */ } }
 let tGuardar = null;
-const save = () => {
-  if (!SERVIDOR){ try { localStorage.setItem(LS, JSON.stringify(S)); } catch (e) {} return; }
-  clearTimeout(tGuardar);
-  tGuardar = setTimeout(() => fetch("/api/estado", { method:"PUT", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(S) }).catch(() => {}), 250);
-};
+const save = () => { clearTimeout(tGuardar); tGuardar = setTimeout(() => { D.guardarEstado(S).catch(() => {}); }, 400); };
 let remote = [], remoteState = "loading";
 
 /* ---------- Inscritos (vienen de la lista interna) ---------- */
 const normalizar = x => ({ id:x.id || "", nombre:clean(String(x.nombre)), ficha:String(x.ficha||""), doc:digits(x.doc), juego:canon(x.juego), companero:digits(x.companero), companeroNombre:clean(String(x.companeroNombre || "")) });
 async function loadRemote(){
-  if (!SERVIDOR){
-    try { remote = (JSON.parse(localStorage.getItem(DEMO_KEY)) || []).map(normalizar); } catch (e) { remote = []; }
-    remoteState = "demo"; return;
-  }
   try {
-    const j = await api("inscritos");
-    if (!j.ok) throw new Error(j.error || "error");
-    remote = j.inscritos.map(normalizar).filter(p => p.nombre && p.doc && p.juego);
-    remoteState = "ok";
+    remote = (await D.listar()).map(normalizar).filter(p => p.nombre && p.doc && p.juego);
+    remoteState = D.modo === "demo" ? "demo" : "ok";
   } catch (e) { remoteState = "fail"; }
 }
 function people(){
@@ -318,7 +303,7 @@ function renderInscritos(){
   $("#in-tabs").innerHTML = GAMES.map(g => `<button data-ig="${g}" class="${g===invGame?"on":""}">${g} · ${ofGame(g).length}</button>`).join("");
   const otrosJ = {}; all.forEach(p => (otrosJ[p.doc] = otrosJ[p.doc] || []).push(p.juego));
   const list = ofGame(invGame).filter(p => !q || norm(p.nombre + " " + p.doc).includes(q));
-  $("#in-list").innerHTML = list.length ? list.map((p,i) => `<div class="pt"><span class="sd">${pad(i+1)}</span><div style="min-width:0;flex:1"><b>${esc(p.nombre)}</b><small>CC ${esc(p.doc)}${p.ficha ? " · Ficha " + esc(p.ficha) : ""}${invGame === "Dominó" && p.companero ? " · Compañero: " + (p.companeroNombre ? esc(p.companeroNombre) + " (CC " + esc(p.companero) + ")" : "CC " + esc(p.companero)) : ""}${otrosJ[p.doc].length > 1 ? " · También en " + esc(otrosJ[p.doc].filter(j => j !== invGame).join(" y ")) : ""}</small></div>${SERVIDOR && p.id ? `<button class="link" data-del="${esc(p.id)}" title="Quitar de la lista">✕</button>` : ""}</div>`).join("")
+  $("#in-list").innerHTML = list.length ? list.map((p,i) => `<div class="pt"><span class="sd">${pad(i+1)}</span><div style="min-width:0;flex:1"><b>${esc(p.nombre)}</b><small>CC ${esc(p.doc)}${p.ficha ? " · Ficha " + esc(p.ficha) : ""}${invGame === "Dominó" && p.companero ? " · Compañero: " + (p.companeroNombre ? esc(p.companeroNombre) + " (CC " + esc(p.companero) + ")" : "CC " + esc(p.companero)) : ""}${otrosJ[p.doc].length > 1 ? " · También en " + esc(otrosJ[p.doc].filter(j => j !== invGame).join(" y ")) : ""}</small></div>${D.modo !== "demo" && p.id ? `<button class="link" data-del="${esc(p.id)}" title="Quitar de la lista">✕</button>` : ""}</div>`).join("")
     : `<div class="empty">${q ? "Sin resultados." : "Aún no hay inscritos en " + invGame + "."}</div>`;
 }
 $("#in-tabs").addEventListener("click", e => { const b = e.target.closest("[data-ig]"); if (b){ invGame = b.dataset.ig; renderInscritos(); } });
@@ -328,22 +313,28 @@ $("#in-list").addEventListener("click", async e => {
   const d = e.target.closest("[data-del]"); if (!d) return;
   const p = remote.find(x => x.id === d.dataset.del);
   if (!confirm("¿Quitar a " + (p ? p.nombre : "esta persona") + " de la lista?")) return;
-  await api("inscritos/" + encodeURIComponent(d.dataset.del), { method:"DELETE" }); await loadRemote(); rerender();
+  const r = await D.borrar(d.dataset.del);
+  if (r && !r.ok && r.error !== "cancelado" && r.error !== "clave") alert("No se pudo quitar. Inténtalo de nuevo.");
+  await loadRemote(); rerender();
 });
-$("#in-sheet").textContent = SERVIDOR ? "🗑 Vaciar toda la lista de inscritos" : "Borrar datos de prueba";
-$("#in-csv").hidden = !SERVIDOR;
+$("#in-sheet").textContent = D.modo === "demo" ? "Borrar datos de prueba" : "🗑 Vaciar toda la lista de inscritos";
+$("#in-csv").addEventListener("click", () => {
+  const url = URL.createObjectURL(new Blob([D.csv(remote)], { type:"text/csv;charset=utf-8" }));
+  const a = document.createElement("a"); a.href = url; a.download = "inscritos.csv"; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+});
 $("#in-sheet").addEventListener("click", async () => {
-  if (!SERVIDOR){
-    if (confirm("¿Borrar las inscripciones de prueba de este navegador?")){ try { localStorage.removeItem(DEMO_KEY); } catch (e) {} await loadRemote(); rerender(); }
+  if (D.modo === "demo"){
+    if (confirm("¿Borrar las inscripciones de prueba de este navegador?")){ await D.vaciar(); await loadRemote(); rerender(); }
     return;
   }
   const t = prompt("Esto borra TODOS los inscritos de la lista y no se puede deshacer.\nPara confirmar escribe BORRAR:");
   if (t === null) return;
   if (t.trim() !== "BORRAR") return alert("No se borró nada: había que escribir BORRAR.");
-  await api("vaciar", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ confirmar:"BORRAR" }) });
+  const r = await D.vaciar();
+  if (r && !r.ok && r.error !== "cancelado" && r.error !== "clave") alert("No se pudo vaciar. Inténtalo de nuevo.");
   await loadRemote(); rerender();
 });
-document.addEventListener("visibilitychange", async () => { if (!document.hidden){ await loadRemote(); if (SERVIDOR) await cargarEstado(); rerender(); } });
+document.addEventListener("visibilitychange", async () => { if (!document.hidden){ await loadRemote(); if (D.modo !== "demo") await cargarEstado(); rerender(); } });
 
 /* ---------- EQUIPOS DE DOMINÓ: los arman los participantes ---------- */
 function teamsModel(){
@@ -597,7 +588,7 @@ $("#bk").addEventListener("click", e => {
 
 /* ---------- Inicio ---------- */
 document.body.classList.remove("locked");
-(async () => { await detectar(); await cargarEstado(); await loadRemote(); go(location.hash.slice(1) || "inscritos"); })();
+(async () => { await D.iniciar(); await cargarEstado(); await loadRemote(); $("#in-sheet").textContent = D.modo === "demo" ? "Borrar datos de prueba" : "🗑 Vaciar toda la lista de inscritos"; go(location.hash.slice(1) || "inscritos"); })();
 </script>
 </body>
 </html>
