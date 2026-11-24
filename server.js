@@ -81,6 +81,8 @@ const TIPOS = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; ch
 const PUBLICOS = ["index.html", "admin.html"];   // y todo lo que esté dentro de js/
 
 function esLocal(req) {
+  // Si la visita llega por un túnel de internet (Cloudflare/ngrok) trae estas cabeceras: no cuenta como "este equipo".
+  if (req.headers["cf-connecting-ip"] || req.headers["x-forwarded-for"]) return false;
   const a = req.socket.remoteAddress || "";
   return a === "127.0.0.1" || a === "::1" || a === "::ffff:127.0.0.1";
 }

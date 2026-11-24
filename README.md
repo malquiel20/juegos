@@ -49,10 +49,13 @@ Desde el panel puedes **descargar la lista en Excel/CSV**, **quitar** a una pers
 - Si quieres que el panel **solo abra en tu computador**, inicia con `SOLO_ESTE_EQUIPO=1` (en `iniciar.bat` añade la línea `set SOLO_ESTE_EQUIPO=1` antes de `node server.js`).
 - El programa solo entrega las páginas (`index.html`, `admin.html`, `js/`). Los archivos internos y la carpeta `datos/` no se pueden descargar desde la red.
 
-## ¿Jugadores fuera de tu Wi-Fi?
-El programa corre en tu computador, así que los jugadores deben estar en tu misma red. Para abrirlo a internet sin cambiar nada, puedes usar un túnel gratuito (por ejemplo Cloudflare Tunnel o ngrok) que le da una dirección pública a `localhost:3000`, o subir este mismo programa a un servicio de alojamiento que corra Node.js y conserve archivos.
+## ¿Jugadores fuera de tu Wi-Fi? Link público
+Haz doble clic en **`compartir-internet.bat`** (en vez de `iniciar.bat`). La primera vez instala **cloudflared** (gratis, sin cuenta) y te pide abrir el archivo otra vez. Después muestra una dirección como `https://algo-aleatorio.trycloudflare.com`:
+- **Esa dirección es el REGISTRO**: compártela con los jugadores (funciona desde cualquier lugar, con datos o Wi-Fi).
+- **El PANEL** queda **solo en tu computador**: `http://localhost:3000/admin.html`. Nadie entra al panel por el link público.
+- La dirección cambia cada vez que lo abres, y solo funciona mientras tu computador y las dos ventanas estén abiertos.
 
 ## Archivos
-`server.js` (el programa y la base de datos) · `index.html` (registro) · `admin.html` (panel) · `js/config.js` (fichas) · `iniciar.bat` (arranque en Windows) · `package.json`
+`server.js` (el programa y la base de datos) · `index.html` (registro) · `admin.html` (panel) · `js/config.js` (fichas) · `iniciar.bat` (arranque en Windows) · `compartir-internet.bat` (arranque con link público) · `package.json`
 
 > La versión publicada en GitHub Pages (solo páginas, sin el programa) funciona en *modo de prueba*: guarda en el navegador y no comparte datos.
