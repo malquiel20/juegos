@@ -72,6 +72,15 @@ function csv() {
   return "﻿" + filas.map(f => f.map(celda).join(";")).join("\r\n");
 }
 
+/* ---------- direcciones para los celulares (misma red Wi-Fi) ---------- */
+function direcciones() {
+  const redes = [];
+  Object.values(os.networkInterfaces()).forEach(l => (l || []).forEach(i => { if (i.family === "IPv4" && !i.internal) redes.push(i.address); }));
+  // primero las redes domésticas más comunes (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
+  const rango = ip => (/^192\.168\./.test(ip) ? 0 : /^10\./.test(ip) ? 1 : /^172\.(1[6-9]|2\d|3[01])\./.test(ip) ? 2 : 3);
+  return redes.sort((a, b) => rango(a) - rango(b));
+}
+
 /* ---------- servidor ---------- */
 const TIPOS = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".svg": "image/svg+xml", ".png": "image/png", ".ico": "image/x-icon", ".json": "application/json" };
 const PUBLICOS = ["index.html", "admin.html"];   // y todo lo que esté dentro de js/
@@ -105,6 +114,7 @@ const servidor = http.createServer(async (req, res) => {
       if (ruta === "/api/registro" && req.method === "POST") return json(res, 200, registrar(await cuerpo(req, 20000)));
       // Panel del organizador
       if (SOLO_ESTE_EQUIPO && !esLocal(req)) return json(res, 403, { ok: false, error: "solo-este-equipo" });
+      if (ruta === "/api/direccion" && req.method === "GET") return json(res, 200, { ok: true, urls: direcciones().map(ip => `http://${ip}:${PORT}/`) });
       if (ruta === "/api/inscritos" && req.method === "GET") return json(res, 200, { ok: true, inscritos });
       if (ruta.startsWith("/api/inscritos/") && req.method === "DELETE") {
         const id = ruta.slice("/api/inscritos/".length), antes = inscritos.length;
@@ -147,8 +157,7 @@ servidor.on("error", e => {
 });
 
 servidor.listen(PORT, "0.0.0.0", () => {
-  const redes = [];
-  Object.values(os.networkInterfaces()).forEach(l => (l || []).forEach(i => { if (i.family === "IPv4" && !i.internal) redes.push(i.address); }));
+  const redes = direcciones();
   console.log("\n  TORNEO DE JUEGOS · programa en marcha\n");
   console.log("  En este equipo:");
   console.log(`    Panel del organizador:  http://localhost:${PORT}/admin.html`);

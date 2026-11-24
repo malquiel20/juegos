@@ -24,11 +24,15 @@ Preparación (una sola vez, ~5 minutos):
 
 Supabase gratuito **pausa el proyecto tras 1 semana sin usarse**; se reactiva con un clic desde su página.
 
-### B) Programa en tu computador (sin internet ni cuentas)
-1. Instala **Node.js** (LTS) desde https://nodejs.org, una sola vez.
-2. Descarga el proyecto (**Code > Download ZIP**), descomprímelo y haz doble clic en **`iniciar.bat`** (o `node server.js`).
-3. Sigue la dirección que muestra la ventana negra. `localhost` solo sirve **en ese computador**. Para los celulares usa la dirección con tu IP (ejemplo `http://192.168.1.20:3000/`), en el mismo Wi-Fi. `compartir-internet.bat` da un link público temporal.
-4. Los datos quedan en la carpeta `datos/`. En este modo el panel no pide clave.
+### B) Programa en tu computador (sin cuentas) — todos los dispositivos ven los mismos registros
+Los registros se guardan en tu computador y los celulares entran por tu Wi-Fi. Todo lo que se registre desde cualquier celular lo ves en tu panel.
+1. Instala **Node.js** (versión LTS) desde https://nodejs.org, una sola vez.
+2. Descomprime el ZIP del proyecto y haz **doble clic en `iniciar.bat`** (o `node server.js`). Se abre una ventana negra (no la cierres) y el panel se abre solo.
+3. Si Windows pregunta por el **Firewall**, pulsa **Permitir acceso** (redes privadas). Si no lo permites, los celulares no podrán entrar.
+4. En el panel, arriba en **Inscritos**, aparece **"Link para los jugadores"** con un **código QR**. Pásales ese link (o que escaneen el QR con la cámara). **Deben estar conectados al mismo Wi-Fi que tu computador.**
+5. Abre **tú** el panel en `http://localhost:3000/admin.html` (en el computador). **No uses `localhost` en el celular**: en el celular `localhost` es el propio celular.
+
+Mientras el computador y la ventana negra estén abiertos, el registro funciona desde cualquier celular de la red. `compartir-internet.bat` da un link público temporal para jugadores fuera de tu Wi-Fi. Los datos quedan en la carpeta `datos/`. En este modo el panel no pide clave.
 
 ## Dónde se guardan los datos
 **Con Supabase:** en tu proyecto de Supabase (tablas `inscritos`, `estado` y `ajustes`). **Con el programa local:** en la carpeta **`datos/`**:

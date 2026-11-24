@@ -189,6 +189,14 @@
 <section class="screen on" id="s-inscritos">
   <div class="banner hide" id="aviso-demo" style="border:2px solid var(--err);background:var(--errbg)"><div><b style="color:var(--err)">⚠ Los registros NO se están compartiendo</b><p style="color:var(--ink)">Esta página todavía no está conectada a la base de datos. Cada celular o computador guarda <b>solo lo que se registró en él</b>, por eso no ves lo de los demás dispositivos. Para que todos lleguen aquí hay que conectar la base de datos (Supabase), como dice el README.</p></div></div>
   <header class="hero small"><h1>Panel del organizador</h1><p>Inscritos por juego. Esta pantalla es solo para ti.</p></header>
+  <div class="card hide" id="link-card">
+    <div class="sec-h"><h2>Link para los jugadores</h2><small>Mismo Wi-Fi</small></div>
+    <p class="help" style="margin:0 0 8px">Pásales este link o que escaneen el código QR con la cámara del celular:</p>
+    <div id="link-url" class="mono" style="font-size:15px;font-weight:700;word-break:break-all;padding:10px 12px;background:var(--card2);border-radius:12px;border:1px solid var(--line)"></div>
+    <div style="display:flex;gap:8px;margin-top:8px"><button class="btn sm" id="link-copiar" type="button" style="flex:1">Copiar link</button></div>
+    <div style="text-align:center;margin-top:14px"><img id="link-qr" alt="Código QR del registro" width="180" height="180" style="border-radius:12px;background:#fff;padding:8px"></div>
+    <p class="help" id="link-otros" style="margin:10px 0 0"></p>
+  </div>
   <div class="card">
     <div class="stat"><div><span class="big" id="in-n">0</span> <span class="mono" style="font-size:10px;color:var(--muted)">INSCRITOS</span></div><span class="chip mute" id="in-src"></span></div>
     <button class="btn sec" id="in-refresh" style="margin-top:12px">↻ Actualizar</button>
@@ -246,6 +254,7 @@
   <button data-go="llaves"><svg viewBox="0 0 24 24"><path d="M3 5h5v5H3zM3 14h5v5H3zM16 9.5h5v5h-5zM8 7.5h3v9H8M11 12h5"/></svg>Llaves</button>
 </div></nav>
 
+<script src="js/vendor/qrcode.js"></script>
 <script src="js/config.js"></script>
 <script src="js/datos.js"></script>
 <script>
@@ -609,9 +618,28 @@ $("#bk").addEventListener("click", e => {
   if (e.target.closest("#bk-reset") && confirm("¿Borrar las llaves y todos los resultados?")){ S.bk = null; stage = null; save(); renderLlaves(); }
 });
 
+/* ---------- Link y QR para los jugadores (solo con el programa del computador) ---------- */
+async function mostrarLink(){
+  if (D.modo !== "servidor") return;
+  let urls = [];
+  try { const j = await (await fetch("/api/direccion", { cache:"no-store" })).json(); urls = (j && j.urls) || []; } catch (e) { /* sin datos */ }
+  $("#link-card").classList.remove("hide");
+  if (!urls.length){ $("#link-url").textContent = "No se encontró una red. Conecta el computador al Wi-Fi y reinicia el programa."; $("#link-copiar").hidden = true; $("#link-qr").hidden = true; return; }
+  $("#link-url").textContent = urls[0];
+  try { const q = qrcode(0, "M"); q.addData(urls[0]); q.make(); $("#link-qr").src = q.createDataURL(5, 2); } catch (e) { $("#link-qr").hidden = true; }
+  $("#link-otros").textContent = urls.length > 1 ? "Si no abre, prueba con: " + urls.slice(1).join("  ·  ") : "";
+  $("#link-copiar").addEventListener("click", async () => {
+    const b = $("#link-copiar"), ok = () => { b.textContent = "¡Copiado!"; setTimeout(() => { b.textContent = "Copiar link"; }, 1800); };
+    try { await navigator.clipboard.writeText(urls[0]); return ok(); } catch (e) { /* plan B */ }
+    const t = document.createElement("textarea"); t.value = urls[0]; document.body.appendChild(t); t.select();
+    try { document.execCommand("copy"); ok(); } catch (e) { prompt("Copia este link:", urls[0]); }
+    t.remove();
+  });
+}
+
 /* ---------- Inicio ---------- */
 document.body.classList.remove("locked");
-(async () => { await D.iniciar(); await cargarEstado(); await loadRemote(); go(location.hash.slice(1) || "inscritos"); })();
+(async () => { await D.iniciar(); await cargarEstado(); await loadRemote(); go(location.hash.slice(1) || "inscritos"); mostrarLink(); })();
 </script>
 </body>
 </html>
