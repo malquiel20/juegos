@@ -1,18 +1,10 @@
 /*
  * =====================================================================
- *  CONFIGURACIÓN DEL TORNEO  (igual que en la invitación de la boda)
+ *  CONFIGURACIÓN DEL TORNEO
  * =====================================================================
- *  urlGoogleScript: pega aquí la URL de tu Google Apps Script (termina en /exec).
- *                   Si la dejas vacía la página funciona en "modo de prueba":
- *                   los datos solo se guardan en el navegador.
- *  // claveAdmin: el panel la usa solo, sin pedirla. Es la CLAVE_ADMIN de tu script.
-  claveAdmin: "yjxeqbyd",
-  fichas:          opciones de la lista "Número de ficha".
+ *  fichas: opciones de la lista "Número de ficha" del registro.
  * =====================================================================
  */
 window.TORNEO = {
-  urlGoogleScript: "https://script.google.com/macros/s/AKfycbwaPqRlVXGkBDjxqGmi3xgwJVsm4GJ9FPXhIZj7MfppomvShIZbEUQ7xKk-iAuVs8Ww/exec",
-  // claveAdmin: el panel la usa solo, sin pedirla. Es la CLAVE_ADMIN de tu script.
-  claveAdmin: "yjxeqbyd",
   fichas: ["3493748", "3603930", "3174404", "3409199"],
 };

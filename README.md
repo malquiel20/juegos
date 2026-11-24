@@ -1,43 +1,58 @@
 # Torneo de Juegos
 
-Dos páginas que usan **la misma lista** (una hoja de Google Sheets tuya). Funciona igual que la invitación de la boda.
+Programa web con **base de datos propia** (sin Google). Un solo programa que:
+- recibe las **inscripciones** de los jugadores (página de registro),
+- las guarda en una **base de datos** (carpeta `datos/`),
+- y te muestra todo en el **panel del organizador**: inscritos por juego, equipos de dominó, clasificación de ajedrez, rondas de bingo y llaves.
 
-- **Registro (jugadores):** `https://malquiel20.github.io/juegos/`
-- **Panel del organizador:** `https://malquiel20.github.io/juegos/admin.html` (entra directo, sin pedir clave)
+El registro y el panel usan **los mismos datos**, y el panel **no pide contraseña**.
 
-| Archivo | Para qué sirve |
+## Cómo usarlo (Windows)
+1. Instala **Node.js** (versión LTS) desde https://nodejs.org, una sola vez.
+2. Descarga este proyecto (en GitHub: botón verde **Code > Download ZIP**) y descomprímelo.
+3. Haz **doble clic en `iniciar.bat`**. Se abre una ventana negra (no la cierres) y el panel se abre solo en el navegador.
+4. Si Windows pregunta por el **Firewall**, pulsa **Permitir acceso** (redes privadas). Es lo que deja entrar a los celulares de los jugadores.
+5. En la ventana negra aparece la dirección para los jugadores, por ejemplo `http://192.168.1.20:3000/`. **Compártela solo con los jugadores** (deben estar conectados al **mismo Wi-Fi** que tu computador).
+
+En otros sistemas: `node server.js`.
+
+Para apagarlo: cierra la ventana negra (o `Ctrl + C`). Los datos quedan guardados.
+
+## Direcciones
+| Para | Dirección |
 |---|---|
-| `index.html` | Registro: nombre y apellido, ficha (lista), cédula y juego (lista). En Dominó pide además el **nombre y apellido** y la **cédula** del compañero. |
-| `admin.html` | Panel: inscritos por juego, equipos de dominó, clasificación de ajedrez y llaves de dominó. |
-| `js/config.js` | **Lo único que editas**: la URL de tu script y las fichas. |
-| `google-apps-script/Codigo.gs` | Script que guarda las inscripciones en tu hoja y evita cédulas repetidas. |
+| Jugadores (registro) | `http://TU-IP:3000/` (la muestra la ventana negra) |
+| Organizador (panel) | `http://localhost:3000/admin.html` |
 
-## Modo de prueba
-Mientras `urlGoogleScript` esté vacío en `js/config.js`, las páginas funcionan en **modo de prueba**: las inscripciones se guardan solo en el navegador (sirve para probar el recorrido completo en un mismo celular o computador). Un aviso lo indica.
+## Dónde se guardan los datos
+En la carpeta **`datos/`** junto al programa:
+- `inscritos.json`: la lista de inscritos (la base de datos). Se guarda una copia de seguridad `.bak` en cada cambio.
+- `estado.json`: parejas de dominó, llaves, ajedrez y bingo del panel.
 
-## Guardar las inscripciones en Google Sheets (una vez, ~5 minutos)
-1. Entra a [sheets.google.com](https://sheets.google.com) y crea una **hoja de cálculo nueva** (por ejemplo "Torneo").
-2. Menú **Extensiones → Apps Script**. Borra lo que aparece y pega **todo** el contenido de `google-apps-script/Codigo.gs`.
-3. En la línea `var CLAVE_ADMIN = "cambia-esta-clave";` escribe una clave tuya (la usarás en el panel). Guarda con el ícono del disquete.
-4. **Implementar → Nueva implementación**: en el engranaje elige **Aplicación web**, *Ejecutar como*: **Yo**, *Quién tiene acceso*: **Cualquier usuario**, y **Implementar**.
-5. Google pedirá permisos. Si dice "Google no ha verificado esta app": **Configuración avanzada → Ir a (nombre del proyecto) → Permitir**. Es tu propio script.
-6. Copia la **URL de la aplicación web** (termina en `/exec`).
-7. Pégala en `js/config.js`:
-   ```js
-   urlGoogleScript: "https://script.google.com/macros/s/XXXXXXXX/exec",
-   ```
-8. Para probar, abre esa URL en el navegador: debe decir *"El script del torneo está funcionando."*
+Desde el panel puedes **descargar la lista en Excel/CSV**, **quitar** a una persona (✕) o **vaciar** toda la lista (pide escribir `BORRAR`).
 
-Se crea sola la pestaña **Inscritos** en tu hoja (una fila por persona; en Dominó guarda también el nombre y la cédula del compañero). Si después cambias el script: **Implementar → Administrar implementaciones → ✏️ Editar → Versión: Nueva versión → Implementar** (la URL no cambia).
+## Reglas de inscripción
+- Una **cédula** no se repite en el mismo juego.
+- **Ajedrez y Dominó son excluyentes**: una persona solo puede estar en uno de los dos.
+- El **Bingo se puede sumar** (una vez) aunque la persona ya esté en otro juego.
+- En **Dominó** se piden además el **nombre y apellido** y la **cédula** del compañero. La ficha se elige de una lista (`js/config.js`) y puede repetirse.
 
-## Cómo funciona
-- **Reglas por cédula:** no se repite en el mismo juego; **Ajedrez y Dominó son excluyentes** (una persona solo puede estar en uno de los dos); el **Bingo se puede sumar** (una vez) aunque ya esté en otro juego. La ficha puede repetirse. Las reglas se aplican en el script, así que si lo cambias hay que publicar **Nueva versión**.
-- **Equipos de dominó:** los arman los participantes. Una pareja queda confirmada cuando los dos se escriben mutuamente (A pone la cédula de B y B la de A). Los demás aparecen como *Pendientes*, y puedes unirlos a mano.
-- **Ajedrez:** sistema suizo. Eliges las rondas, el programa empareja a los que van con puntos parecidos y tú marcas cada resultado (1-0, ½, 0-1). Victoria 1, tablas ½, descanso 1. Desempate Buchholz.
-- **Bingo:** escribes cuántos **cartones** hay. **Prioridad:** 1) los que solo se inscribieron en Bingo (por orden de registro), 2) los que también están en Ajedrez/Dominó (no tienen prioridad) y 3) los que agregues a mano. Cada ronda juega ese número de personas: primero los inscritos, **en el orden en que se registraron**, y al final los que agregues a mano (*Agregar jugador sin inscribir*). Con 20 inscritos y 8 cartones: ronda 1 = 8, ronda 2 = 8, ronda 3 = los 4 que faltan (y, si agregaste a alguien más, entran después de ellos). Marca cada ronda como jugada y pasa a la siguiente.
-- **Llaves de dominó:** eliminación directa con las parejas confirmadas. Toca una pareja para marcarla ganadora.
+## Panel del organizador
+- **Inscritos:** quién se registró en cada juego (con buscador).
+- **Equipos (dominó):** los arman los participantes: una pareja queda confirmada cuando los dos se escriben mutuamente. Los demás quedan *pendientes* y puedes unirlos a mano.
+- **Ajedrez:** sistema suizo. Eliges las rondas, el programa empareja y tú marcas cada resultado (1-0, ½, 0-1). Victoria 1, tablas ½, descanso 1. Desempate Buchholz.
+- **Bingo:** escribes cuántos **cartones** hay. Cada ronda juegan tantos jugadores como cartones: primero los que solo se inscribieron en Bingo (por orden de registro), luego los que ya estaban en otro juego, y al final los que agregues a mano.
+- **Llaves (dominó):** eliminación directa con las parejas confirmadas. Toca una pareja para marcarla ganadora.
 
-## Privacidad (importante)
-- El panel **no pide clave**: usa la `claveAdmin` que está en `js/config.js`, que es pública en GitHub. Por eso **cualquiera que conozca el enlace del panel (o del script) puede ver la lista de inscritos con sus cédulas**. No compartas el enlace del panel con los jugadores; compárteles solo el del registro.
-- Si más adelante quieres volver a proteger la lista, borra `claveAdmin` de `js/config.js` y pon una clave nueva en `CLAVE_ADMIN` del script (el panel la pedirá).
-- Equipos, llaves y resultados de ajedrez se guardan en el navegador del organizador: usa siempre el mismo dispositivo. Los inscritos no se pierden, están en tu hoja de Google.
+## Privacidad
+- Los jugadores solo necesitan el enlace del **registro**. **No compartas el del panel**: quien lo abra puede ver las cédulas.
+- Si quieres que el panel **solo abra en tu computador**, inicia con `SOLO_ESTE_EQUIPO=1` (en `iniciar.bat` añade la línea `set SOLO_ESTE_EQUIPO=1` antes de `node server.js`).
+- El programa solo entrega las páginas (`index.html`, `admin.html`, `js/`). Los archivos internos y la carpeta `datos/` no se pueden descargar desde la red.
+
+## ¿Jugadores fuera de tu Wi-Fi?
+El programa corre en tu computador, así que los jugadores deben estar en tu misma red. Para abrirlo a internet sin cambiar nada, puedes usar un túnel gratuito (por ejemplo Cloudflare Tunnel o ngrok) que le da una dirección pública a `localhost:3000`, o subir este mismo programa a un servicio de alojamiento que corra Node.js y conserve archivos.
+
+## Archivos
+`server.js` (el programa y la base de datos) · `index.html` (registro) · `admin.html` (panel) · `js/config.js` (fichas) · `iniciar.bat` (arranque en Windows) · `package.json`
+
+> La versión publicada en GitHub Pages (solo páginas, sin el programa) funciona en *modo de prueba*: guarda en el navegador y no comparte datos.
