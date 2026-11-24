@@ -210,6 +210,12 @@
   <div id="ch"></div>
 </section>
 
+<!-- ===== BINGO ===== -->
+<section class="screen" id="s-bingo">
+  <header class="hero small"><h1>Bingo · Rondas</h1><p>Juegan primero los inscritos, por orden de registro. Los que agregues a mano van al final.</p></header>
+  <div id="bg"></div>
+</section>
+
 <!-- ===== LLAVES DOMINÓ ===== -->
 <section class="screen" id="s-llaves">
   <header class="hero small"><h1>Dominó · Llaves</h1><p>Eliminación directa. Toca una pareja para marcarla ganadora.</p></header>
@@ -222,6 +228,7 @@
   <button data-go="inscritos"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>Inscritos</button>
   <button data-go="equipos"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.5 3-6 6.5-6s6.5 2.5 6.5 6"/><circle cx="17" cy="9" r="2.5"/><path d="M17 14c2.5 0 4.5 2 4.5 5"/></svg>Equipos</button>
   <button data-go="ajedrez"><svg viewBox="0 0 24 24"><path d="M19 22H5v-2h14v2M17.5 13.5c-.8 0-1.5.7-1.5 1.5H8v-1.5c0-.8-.7-1.5-1.5-1.5v-1c2.2 0 3-1.8 3-3V7l1-2 2-1 3 1v2c1.7 1.3 2 3.5 2 5.5v1z"/></svg>Ajedrez</button>
+  <button data-go="bingo"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 8v8M8 12h8" stroke-width="1.5"/></svg>Bingo</button>
   <button data-go="llaves"><svg viewBox="0 0 24 24"><path d="M3 5h5v5H3zM3 14h5v5H3zM16 9.5h5v5h-5zM8 7.5h3v9H8M11 12h5"/></svg>Llaves</button>
 </div></nav>
 
@@ -251,14 +258,14 @@ function shuffle(a){
 }
 
 /* ---------- Navegación ---------- */
-const SCREENS = ["inscritos","equipos","ajedrez","llaves"];
+const SCREENS = ["inscritos","equipos","ajedrez","bingo","llaves"];
 function go(name){
   if (!SCREENS.includes(name)) name = "inscritos";
   $$(".screen").forEach(s => s.classList.toggle("on", s.id === "s-"+name));
   $$("nav button").forEach(b => b.classList.toggle("on", b.dataset.go === name));
   if (location.hash !== "#"+name) history.replaceState(null,"","#"+name);
   window.scrollTo(0,0);
-  ({inscritos:renderInscritos, equipos:renderEquipos, ajedrez:renderAjedrez, llaves:renderLlaves})[name]();
+  ({inscritos:renderInscritos, equipos:renderEquipos, ajedrez:renderAjedrez, bingo:renderBingo, llaves:renderLlaves})[name]();
 }
 document.addEventListener("click", e => { const b = e.target.closest("[data-go]"); if (b) go(b.dataset.go); });
 window.addEventListener("hashchange", () => go(location.hash.slice(1)));
@@ -445,6 +452,66 @@ $("#ch").addEventListener("click", e => {
   if (rb){ const [ri, gi] = rb.dataset.g.split(":").map(Number), g = S.chess.rounds[ri].games[gi]; g.res = g.res === rb.dataset.r ? null : rb.dataset.r; save(); renderAjedrez(); }
   if (t.closest("#ch-next")){ S.chess.rounds.push(pairRound()); chView = null; save(); renderAjedrez(); }
   if (t.closest("#ch-reset") && confirm("¿Borrar todo el torneo de ajedrez?")){ S.chess = null; chView = null; save(); renderAjedrez(); }
+});
+
+/* ---------- BINGO: rondas por prioridad ---------- */
+const bingoState = () => S.bingo || (S.bingo = { cartones:0, extras:[], jugadas:[] });
+function bingoModel(){
+  const B = bingoState();
+  const reg = ofGame("Bingo").map(p => ({ key:"d:" + p.doc, nombre:p.nombre, insc:true }));            // en orden de registro
+  const ext = B.extras.map(x => ({ key:"x:" + x.id, nombre:x.nombre, insc:false, id:x.id }));         // siempre al final
+  const all = [...reg, ...ext], byKey = Object.fromEntries(all.map(p => [p.key, p]));
+  const played = new Set(B.jugadas.flat());
+  const queue = all.filter(p => !played.has(p.key)), n = B.cartones, pending = [];
+  if (n > 0) for (let i = 0; i < queue.length; i += n) pending.push(queue.slice(i, i + n));
+  const done = B.jugadas.map(r => r.map(k => byKey[k] || { key:k, nombre:"(ya no está en la lista)", insc:k[0] === "d" }));
+  return { B, reg, ext, queue, pending, done, n };
+}
+function renderBingo(){
+  const M = bingoModel(), n = M.n, base = M.B.jugadas.length;
+  const fila = (p, i, quitar) => `<div class="pt" style="margin-top:6px"><span class="sd">${pad(i+1)}</span><div style="min-width:0;flex:1"><b>${esc(p.nombre)}</b></div>
+    <span class="chip ${p.insc ? "" : "mute"}">${p.insc ? "Inscrito" : "Adicional"}</span>${quitar && !p.insc ? `<button class="link" data-xdel="${esc(p.id)}" title="Quitar">✕</button>` : ""}</div>`;
+  let h = `<div class="card"><div class="stat"><div><span class="big">${M.reg.length + M.ext.length}</span> <span class="mono" style="font-size:10px;color:var(--muted)">JUGADORES</span></div>
+      <span class="chip mute">${M.reg.length} inscritos · ${M.ext.length} adicionales</span></div>
+    <div class="field" style="margin-top:14px"><label class="t" for="bg-n">Cartones de bingo disponibles</label>
+      <input class="num" id="bg-n" type="number" min="1" max="500" value="${n || ""}" placeholder="Ej. 8">
+      <p class="help">En cada ronda juegan tantos jugadores como cartones haya.</p></div>
+    ${n ? `<p class="help" style="margin:0"><b>${M.queue.length}</b> por jugar · <b>${M.pending.length}</b> ronda${M.pending.length === 1 ? "" : "s"} pendiente${M.pending.length === 1 ? "" : "s"}${base ? ` · ${base} ya jugada${base === 1 ? "" : "s"}` : ""}</p>` : `<p class="help" style="margin:0">Escribe cuántos cartones hay para armar las rondas.</p>`}</div>
+    <div class="card"><div class="sec-h"><h2>Agregar jugador sin inscribir</h2><small>Va al final</small></div>
+      <form id="bg-add" novalidate><div class="field"><input id="bg-nom" type="text" placeholder="Nombre y apellido"></div><button class="btn sm" type="submit">Agregar al final</button></form></div>`;
+  if (n && M.pending.length){
+    h += `<div class="list" style="margin-top:2px">` + M.pending.map((r, k) => `<div class="gm"><div class="pl"><b>Ronda ${base + k + 1}</b>
+        <span class="chip ${k === 0 ? "" : "mute"}">${k === 0 ? "Actual" : "Siguiente"} · ${r.length} jugador${r.length === 1 ? "" : "es"}</span></div>
+        ${r.map((p, i) => fila(p, i, true)).join("")}
+        ${k === 0 ? `<button class="btn" id="bg-done" style="margin-top:10px">✓ Marcar ronda jugada</button>` : ""}</div>`).join("") + `</div>`;
+  } else if (n && !M.queue.length){
+    h += `<div class="card empty">${M.done.length ? "Ya jugaron todos. 🎉" : "Aún no hay jugadores. Los que se inscriban en Bingo aparecerán aquí."}</div>`;
+  }
+  if (M.done.length){
+    h += `<div class="card"><div class="sec-h"><h2>Rondas jugadas</h2><small>${M.done.length}</small></div>` +
+      M.done.map((r, k) => `<p class="help" style="margin:6px 0"><b>Ronda ${k + 1} ✓</b> · ${r.map(p => esc(p.nombre)).join(", ")}</p>`).join("") +
+      `<button class="btn sec sm" id="bg-undo" style="margin-top:8px">Deshacer última ronda jugada</button></div>`;
+  }
+  h += `<button class="btn sec" id="bg-reset">Reiniciar bingo</button>`;
+  $("#bg").innerHTML = h;
+}
+$("#bg").addEventListener("change", e => {
+  if (e.target.id === "bg-n"){ bingoState().cartones = Math.max(0, Math.min(500, parseInt(e.target.value) || 0)); save(); renderBingo(); }
+});
+$("#bg").addEventListener("submit", e => {
+  if (e.target.id !== "bg-add") return;
+  e.preventDefault();
+  const nombre = clean($("#bg-nom").value);
+  if (!nombre) return;
+  const B = bingoState();
+  B.extras.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5), nombre }); save(); renderBingo();
+});
+$("#bg").addEventListener("click", e => {
+  const B = bingoState(), t = e.target;
+  if (t.closest("#bg-done")){ const M = bingoModel(); if (M.pending[0]){ B.jugadas.push(M.pending[0].map(p => p.key)); save(); renderBingo(); } }
+  if (t.closest("#bg-undo")){ B.jugadas.pop(); save(); renderBingo(); }
+  const d = t.closest("[data-xdel]"); if (d){ B.extras = B.extras.filter(x => x.id !== d.dataset.xdel); save(); renderBingo(); }
+  if (t.closest("#bg-reset") && confirm("¿Borrar los cartones, los jugadores agregados y las rondas jugadas del bingo?")){ S.bingo = null; save(); renderBingo(); }
 });
 
 /* ---------- LLAVES DE DOMINÓ ---------- */

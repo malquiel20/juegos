@@ -34,6 +34,7 @@ Se crea sola la pestaña **Inscritos** en tu hoja (una fila por persona). Si des
 - **Una cédula, un solo registro:** el script rechaza la cédula si ya está en cualquier juego. Es lo único que se valida; la ficha puede repetirse.
 - **Equipos de dominó:** los arman los participantes. Una pareja queda confirmada cuando los dos se escriben mutuamente (A pone la cédula de B y B la de A). Los demás aparecen como *Pendientes*, y puedes unirlos a mano.
 - **Ajedrez:** sistema suizo. Eliges las rondas, el programa empareja a los que van con puntos parecidos y tú marcas cada resultado (1-0, ½, 0-1). Victoria 1, tablas ½, descanso 1. Desempate Buchholz.
+- **Bingo:** escribes cuántos **cartones** hay. Cada ronda juega ese número de personas: primero los inscritos, **en el orden en que se registraron**, y al final los que agregues a mano (*Agregar jugador sin inscribir*). Con 20 inscritos y 8 cartones: ronda 1 = 8, ronda 2 = 8, ronda 3 = los 4 que faltan (y, si agregaste a alguien más, entran después de ellos). Marca cada ronda como jugada y pasa a la siguiente.
 - **Llaves de dominó:** eliminación directa con las parejas confirmadas. Toca una pareja para marcarla ganadora.
 
 ## Privacidad (importante)
