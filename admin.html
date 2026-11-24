@@ -187,6 +187,7 @@
 
 <!-- ===== INSCRITOS ===== -->
 <section class="screen on" id="s-inscritos">
+  <div class="banner hide" id="aviso-demo" style="border:2px solid var(--err);background:var(--errbg)"><div><b style="color:var(--err)">⚠ Los registros NO se están compartiendo</b><p style="color:var(--ink)">Esta página todavía no está conectada a la base de datos. Cada celular o computador guarda <b>solo lo que se registró en él</b>, por eso no ves lo de los demás dispositivos. Para que todos lleguen aquí hay que conectar la base de datos (Supabase), como dice el README.</p></div></div>
   <header class="hero small"><h1>Panel del organizador</h1><p>Inscritos por juego. Esta pantalla es solo para ti.</p></header>
   <div class="card">
     <div class="stat"><div><span class="big" id="in-n">0</span> <span class="mono" style="font-size:10px;color:var(--muted)">INSCRITOS</span></div><span class="chip mute" id="in-src"></span></div>
@@ -311,7 +312,7 @@ const srcLabel = () => ({demo:"Modo de prueba", loading:"Cargando…", ok:"Conec
 let invGame = "Ajedrez";
 function renderInscritos(){
   const all = people(), q = norm($("#in-q").value || "");
-  $("#in-n").textContent = all.length; $("#in-src").textContent = srcLabel();
+  $("#in-n").textContent = all.length; $("#in-src").textContent = srcLabel(); $("#aviso-demo").classList.toggle("hide", D.modo !== "demo");
   $("#in-tabs").innerHTML = GAMES.map(g => `<button data-ig="${g}" class="${g===invGame?"on":""}">${g} · ${ofGame(g).length}</button>`).join("");
   const otrosJ = {}; all.forEach(p => (otrosJ[p.doc] = otrosJ[p.doc] || []).push(p.juego));
   const equipoDe = {}; teamsModel().teams.forEach(t => { equipoDe[t.a.doc] = t.name; equipoDe[t.b.doc] = t.name; });
