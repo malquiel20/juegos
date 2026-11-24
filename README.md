@@ -3,7 +3,7 @@
 Programa web con **base de datos** (Supabase o archivo propio; **sin Google**). Un solo programa que:
 - recibe las **inscripciones** de los jugadores (página de registro),
 - las guarda en una **base de datos** (carpeta `datos/`),
-- y te muestra todo en el **panel del organizador**: inscritos por juego, equipos de dominó, clasificación de ajedrez, rondas de bingo y llaves.
+- y te muestra todo en el **panel del organizador**: inscritos por juego, creación de equipos de dominó, clasificación de ajedrez, rondas de bingo y llaves.
 
 El registro y el panel usan **los mismos datos**, y el panel **no pide contraseña**.
 
@@ -20,7 +20,7 @@ Preparación (una sola vez, ~5 minutos):
 4. **Project Settings (engranaje) > API Keys** (o *Data API*): copia la **Project URL** y la llave **anon public** (o **publishable**).
 5. Pégalas en `js/config.js`, en `supabase: { url: "...", key: "..." }`, y guarda (*Commit changes* en GitHub). En 1–2 minutos los links ya guardan en tu base de datos.
 
-**Clave:** ver la lista de inscritos y registrarse **no piden clave**. La clave solo se pide para **borrar** inscritos o **guardar** resultados del panel (parejas, llaves, ajedrez, bingo), y queda recordada en ese dispositivo. Así ningún jugador puede alterar resultados ni vaciar la lista.
+**Clave:** ver la lista de inscritos y registrarse **no piden clave**. La clave solo se pide para **borrar** inscritos o **guardar** cambios del panel (equipos, llaves, ajedrez, bingo), y queda recordada en ese dispositivo. Así ningún jugador puede alterar resultados ni vaciar la lista.
 
 Supabase gratuito **pausa el proyecto tras 1 semana sin usarse**; se reactiva con un clic desde su página.
 
@@ -41,14 +41,14 @@ Desde el panel puedes **descargar la lista en Excel/CSV**, **quitar** a una pers
 - Una **cédula** no se repite en el mismo juego.
 - **Ajedrez y Dominó son excluyentes**: una persona solo puede estar en uno de los dos.
 - El **Bingo se puede sumar** (una vez) aunque la persona ya esté en otro juego.
-- En **Dominó** se piden además el **nombre y apellido**, la **cédula** y la **ficha** (se elige de la lista) del compañero, y un **nombre de equipo** (opcional). La ficha se elige de una lista (`js/config.js`) y puede repetirse.
+- El registro es solo: **nombre y apellido, ficha (lista), cédula y juego**. La ficha se elige de una lista (`js/config.js`) y puede repetirse.
 
 ## Panel del organizador
 - **Inscritos:** quién se registró en cada juego (con buscador).
-- **Equipos (dominó):** los arman los participantes (con el nombre que le pongan al equipo; si no escriben ninguno se muestra *Nombre & Nombre*, y tú puedes cambiarlo con **✎ Nombre del equipo**): una pareja queda confirmada cuando los dos se escriben mutuamente. Los demás quedan *pendientes* y puedes unirlos a mano.
+- **Equipos (dominó):** los creas tú en el panel: escribes el **nombre del equipo**, tocas a los **dos jugadores** de la lista de inscritos en Dominó y pulsas **Crear equipo**. Puedes cambiar el nombre (**✎**) o **deshacer** un equipo (**✂**). Los jugadores ya en un equipo salen de la lista.
 - **Ajedrez:** sistema suizo. Eliges las rondas, el programa empareja y tú marcas cada resultado (1-0, ½, 0-1). Victoria 1, tablas ½, descanso 1. Desempate Buchholz.
 - **Bingo:** escribes cuántos **cartones** hay. Cada ronda juegan tantos jugadores como cartones: primero los que solo se inscribieron en Bingo (por orden de registro), luego los que ya estaban en otro juego, y al final los que agregues a mano.
-- **Llaves (dominó):** eliminación directa con las parejas confirmadas. Toca una pareja para marcarla ganadora.
+- **Llaves (dominó):** eliminación directa con los equipos creados. Toca un equipo para marcarlo ganador.
 
 ## Privacidad
 - Los jugadores solo necesitan el enlace del **registro**. **No compartas el del panel**: quien lo abra puede ver las cédulas.

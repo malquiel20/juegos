@@ -13,14 +13,8 @@ create table if not exists public.inscritos (
   nombre text not null,
   ficha text not null,
   doc text not null,
-  juego text not null check (juego in ('Ajedrez', 'Dominó', 'Bingo')),
-  companero text not null default '',
-  companero_nombre text not null default '',
-  companero_ficha text not null default '',
-  equipo text not null default ''
+  juego text not null check (juego in ('Ajedrez', 'Dominó', 'Bingo'))
 );
-alter table public.inscritos add column if not exists companero_ficha text not null default '';   -- por si ya existía
-alter table public.inscritos add column if not exists equipo text not null default '';
 create unique index if not exists inscritos_doc_juego on public.inscritos (doc, juego);
 
 create table if not exists public.estado (
@@ -62,23 +56,17 @@ $$;
 -- Inscribir: una cédula no se repite en el mismo juego; Ajedrez y Dominó son excluyentes; el Bingo se puede sumar.
 drop function if exists public.registrar(text, text, text, text, text, text);          -- versiones anteriores
 drop function if exists public.registrar(text, text, text, text, text, text, text);
-create or replace function public.registrar(p_nombre text, p_ficha text, p_doc text, p_juego text, p_comp text, p_comp_nombre text, p_comp_ficha text, p_equipo text)
+drop function if exists public.registrar(text, text, text, text, text, text, text, text);
+create or replace function public.registrar(p_nombre text, p_ficha text, p_doc text, p_juego text)
 returns jsonb language plpgsql security definer set search_path = public as $$
 declare
   v_nombre text := left(regexp_replace(trim(coalesce(p_nombre, '')), '\s+', ' ', 'g'), 120);
   v_ficha text := left(trim(coalesce(p_ficha, '')), 40);
   v_doc text := left(regexp_replace(coalesce(p_doc, ''), '\D', '', 'g'), 20);
-  v_comp text := left(regexp_replace(coalesce(p_comp, ''), '\D', '', 'g'), 20);
-  v_comp_nombre text := left(regexp_replace(trim(coalesce(p_comp_nombre, '')), '\s+', ' ', 'g'), 120);
-  v_comp_ficha text := left(trim(coalesce(p_comp_ficha, '')), 40);
-  v_equipo text := left(regexp_replace(trim(coalesce(p_equipo, '')), '\s+', ' ', 'g'), 60);
   v_otro text;
 begin
   if position(' ' in v_nombre) = 0 or v_ficha = '' or length(v_doc) < 5 or p_juego not in ('Ajedrez', 'Dominó', 'Bingo') then
     return jsonb_build_object('ok', false, 'error', 'datos');
-  end if;
-  if p_juego = 'Dominó' and (length(v_comp) < 5 or v_comp = v_doc or position(' ' in v_comp_nombre) = 0 or v_comp_ficha = '') then
-    return jsonb_build_object('ok', false, 'error', 'companero');
   end if;
 
   perform pg_advisory_xact_lock(hashtext('torneo-inscribir'));   -- evita dos registros a la vez con la misma cédula
@@ -93,12 +81,7 @@ begin
     end if;
   end if;
 
-  insert into public.inscritos (nombre, ficha, doc, juego, companero, companero_nombre, companero_ficha, equipo)
-  values (v_nombre, v_ficha, v_doc, p_juego,
-          case when p_juego = 'Dominó' then v_comp else '' end,
-          case when p_juego = 'Dominó' then v_comp_nombre else '' end,
-          case when p_juego = 'Dominó' then v_comp_ficha else '' end,
-          case when p_juego = 'Dominó' then v_equipo else '' end);
+  insert into public.inscritos (nombre, ficha, doc, juego) values (v_nombre, v_ficha, v_doc, p_juego);
   return jsonb_build_object('ok', true);
 end $$;
 
@@ -106,8 +89,7 @@ end $$;
 create or replace function public.listar() returns jsonb
 language sql security definer set search_path = public as $$
   select coalesce(jsonb_agg(jsonb_build_object(
-    'id', id, 'fecha', fecha, 'nombre', nombre, 'ficha', ficha, 'doc', doc, 'juego', juego,
-    'companero', companero, 'companeroNombre', companero_nombre, 'companeroFicha', companero_ficha, 'equipo', equipo) order by fecha, id), '[]'::jsonb)
+    'id', id, 'fecha', fecha, 'nombre', nombre, 'ficha', ficha, 'doc', doc, 'juego', juego) order by fecha, id), '[]'::jsonb)
   from public.inscritos;
 $$;
 
@@ -145,5 +127,5 @@ begin
   return jsonb_build_object('ok', true);
 end $$;
 
-grant execute on function public.clave_ok(text), public.registrar(text, text, text, text, text, text, text, text), public.listar(),
+grant execute on function public.clave_ok(text), public.registrar(text, text, text, text), public.listar(),
   public.borrar(uuid, text), public.vaciar(text), public.leer_estado(), public.guardar_estado(jsonb, text) to anon, authenticated;

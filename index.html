@@ -172,9 +172,6 @@
   .num{width:80px;padding:8px 10px;font:inherit;color:var(--ink);background:var(--card2);border:1px solid var(--line);border-radius:10px;text-align:center}
   .help{font-size:12px;color:var(--muted);margin:6px 0 0}
   .hide{display:none}
-  fieldset.comp{border:1px solid var(--line);border-radius:14px;padding:14px 14px 14px;margin:0;background:var(--card2)}
-  fieldset.comp legend{font:700 12px var(--f-mono);text-transform:uppercase;letter-spacing:.04em;padding:0 8px}
-  fieldset.comp input,fieldset.comp select{background:var(--card)}
 </style>
 </head>
 <body>
@@ -200,19 +197,6 @@
       <div class="field"><label class="t" for="doc">Número de cédula</label><input id="doc" type="text" inputmode="numeric" placeholder="Solo números"></div>
       <div class="field"><label class="t" for="juego">Juego en el que vas a participar</label>
         <select id="juego"><option value="">Elige un juego…</option><option value="Ajedrez">Ajedrez</option><option value="Dominó">Dominó</option><option value="Bingo">Bingo</option></select></div>
-      <div class="hide" id="wrap-comp">
-        <div class="field"><label class="t" for="equipo">Nombre del equipo <span style="font-weight:400;color:var(--muted)">(opcional)</span></label>
-          <input id="equipo" type="text" maxlength="60" autocomplete="off" placeholder="Ej. Los Capicúas"></div>
-        <fieldset class="comp">
-          <legend>Datos de tu compañero de dominó</legend>
-          <div class="field"><label class="t" for="compn">Nombre y apellido</label>
-            <input id="compn" type="text" autocomplete="off" placeholder="Ej. Pedro Gómez"></div>
-          <div class="field"><label class="t" for="comp">Cédula</label>
-            <input id="comp" type="text" inputmode="numeric" placeholder="Solo números"></div>
-          <div class="field" style="margin-bottom:0"><label class="t" for="compf">Ficha</label>
-            <select id="compf"><option value="">Elige su ficha…</option></select></div>
-        </fieldset>
-        <p class="help" style="margin:8px 0 14px">Tú eliges tu pareja. Tu compañero también debe registrarse y escribir <b>tu nombre, tu cédula y tu ficha</b>. Si le pones nombre al equipo, mejor que sea el mismo en los dos registros.</p></div>
       <button class="btn" id="go" type="submit">¡Participar! →</button>
       <div id="msg" class="msg" role="status" aria-live="polite"></div>
       <p class="note">Una cédula = un juego (Ajedrez o Dominó). El Bingo se puede sumar.</p>
@@ -229,9 +213,7 @@ const CONFIG = window.TORNEO || {};
 const D = window.Datos;
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const opcionesFicha = (CONFIG.fichas || []).map(f => `<option value="${esc(f)}">${esc(f)}</option>`).join("");
-$("#ficha").insertAdjacentHTML("beforeend", opcionesFicha);
-$("#compf").insertAdjacentHTML("beforeend", opcionesFicha);
+$("#ficha").insertAdjacentHTML("beforeend", (CONFIG.fichas || []).map(f => `<option value="${esc(f)}">${esc(f)}</option>`).join(""));
 // ¿Dónde se guardan los datos? Si no hay base de datos conectada, funciona en modo de prueba.
 const listo = D.iniciar().then(m => { if (m === "demo") $("#demo").classList.remove("hide"); });
 
@@ -239,32 +221,22 @@ const msg = $("#msg"), btn = $("#go");
 const show = (type, text) => { msg.className = "msg " + type; msg.textContent = text; };
 const clean = v => v.trim().replace(/\s+/g, " ");
 const digits = v => v.replace(/\D/g, "");
-$("#juego").addEventListener("change", () => $("#wrap-comp").classList.toggle("hide", $("#juego").value !== "Dominó"));
-
 const enviar = async d => { await listo; return D.registrar(d); };
 
 $("#f").addEventListener("submit", async e => {
   e.preventDefault();
   const nombre = clean($("#nombre").value), ficha = $("#ficha").value, doc = digits($("#doc").value), juego = $("#juego").value;
-  const comp = juego === "Dominó" ? digits($("#comp").value) : "", compNombre = juego === "Dominó" ? clean($("#compn").value) : "", compFicha = juego === "Dominó" ? $("#compf").value : "", equipo = juego === "Dominó" ? clean($("#equipo").value).slice(0, 60) : "";
   if (!nombre.includes(" ")) return show("err", "Escribe nombre y apellido.");
   if (!ficha) return show("err", "Elige tu número de ficha.");
   if (doc.length < 5) return show("err", "Revisa tu número de cédula.");
   if (!juego) return show("err", "Elige el juego en el que vas a participar.");
-  if (juego === "Dominó"){
-    if (!compNombre.includes(" ")) return show("err", "Escribe el nombre y apellido de tu compañero de dominó.");
-    if (compNombre.toLowerCase() === nombre.toLowerCase()) return show("err", "Tu compañero no puede ser tú: escribe el nombre de tu pareja.");
-    if (!compFicha) return show("err", "Elige la ficha de tu compañero.");
-    if (comp.length < 5) return show("err", "Escribe la cédula de tu compañero de dominó.");
-    if (comp === doc) return show("err", "Tu compañero no puede ser tú: escribe la cédula de tu pareja.");
-  }
 
   btn.disabled = true; msg.className = "msg";
   try {
-    const j = await enviar({ nombre, ficha, doc, juego, comp, compNombre, compFicha, equipo });
+    const j = await enviar({ nombre, ficha, doc, juego });
     if (j.ok){
-      show("ok", `¡Listo ${nombre.split(" ")[0]}! Quedaste inscrito en ${juego}.` + (juego === "Dominó" ? " Tu compañero debe registrarse con tu cédula." : ""));
-      $("#f").reset(); $("#wrap-comp").classList.add("hide");
+      show("ok", `¡Listo ${nombre.split(" ")[0]}! Quedaste inscrito en ${juego}.`);
+      $("#f").reset();
     } else if (j.duplicado){
       show("err", j.juego === juego
         ? `Esta cédula ya está inscrita en ${j.juego}.`

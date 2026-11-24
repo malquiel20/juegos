@@ -173,6 +173,9 @@
   .num{width:80px;padding:8px 10px;font:inherit;color:var(--ink);background:var(--card2);border:1px solid var(--line);border-radius:10px;text-align:center}
   .help{font-size:12px;color:var(--muted);margin:6px 0 0}
   .hide{display:none}
+  button.pt{width:100%;text-align:left;font:inherit;color:var(--ink);cursor:pointer}
+  button.pt.sel{border-color:var(--ink);background:var(--card2)}
+  button.pt.sel .sd{background:var(--btn);color:var(--btn-ink);border-color:var(--btn)}
 </style>
 </head>
 <body>
@@ -195,12 +198,14 @@
 
 <!-- ===== EQUIPOS DE DOMINÓ ===== -->
 <section class="screen" id="s-equipos">
-  <header class="hero small"><h1>Dominó · Equipos</h1><p>Las parejas las eligen los participantes: se forman solas cuando ambos se escriben mutuamente.</p></header>
-  <div class="card"><div class="stat"><div><span class="big" id="eq-n">0</span> <span class="mono" style="font-size:10px;color:var(--muted)">PAREJAS</span></div><span class="chip mute" id="eq-p"></span></div></div>
-  <div class="card hide" id="eq-man">
-    <div class="sec-h"><h2>Unir pareja a mano</h2><small>Si no se encontraron solos</small></div>
-    <div class="field"><select id="m-a"></select></div><div class="field"><select id="m-b"></select></div>
-    <button class="btn sm" id="m-go">Unir</button>
+  <header class="hero small"><h1>Dominó · Equipos</h1><p>Tú armas los equipos: escribe el nombre, toca a los dos jugadores y pulsa <b>Crear equipo</b>.</p></header>
+  <div class="card"><div class="stat"><div><span class="big" id="eq-n">0</span> <span class="mono" style="font-size:10px;color:var(--muted)">EQUIPOS</span></div><span class="chip mute" id="eq-p"></span></div></div>
+  <div class="card">
+    <div class="sec-h"><h2>Crear equipo</h2><small id="eq-sel">0 de 2</small></div>
+    <div class="field"><input id="eq-nom" type="text" maxlength="60" autocomplete="off" placeholder="Nombre del equipo (ej. Los Capicúas)"></div>
+    <input id="eq-q" type="search" placeholder="Buscar jugador...">
+    <div class="list" id="eq-pick" style="margin:10px 0"></div>
+    <button class="btn" id="eq-go" disabled>Crear equipo</button>
   </div>
   <div class="list" id="eq-list"></div>
 </section>
@@ -219,7 +224,7 @@
 
 <!-- ===== LLAVES DOMINÓ ===== -->
 <section class="screen" id="s-llaves">
-  <header class="hero small"><h1>Dominó · Llaves</h1><p>Eliminación directa. Toca una pareja para marcarla ganadora.</p></header>
+  <header class="hero small"><h1>Dominó · Llaves</h1><p>Eliminación directa. Toca un equipo para marcarlo ganador.</p></header>
   <div id="bk"></div>
 </section>
 
@@ -273,7 +278,7 @@ const current = () => location.hash.slice(1) || "inscritos";
 const rerender = () => go(current());
 
 /* ---------- Estado del panel (parejas, llaves, ajedrez, bingo): se guarda en la base de datos ---------- */
-const ESTADO_BASE = () => ({ manual:[], names:{}, mpairs:[], bk:null, chess:null, bingo:null });
+const ESTADO_BASE = () => ({ teams:[], bk:null, chess:null, bingo:null });
 let S = ESTADO_BASE();
 async function cargarEstado(){ try { S = Object.assign(ESTADO_BASE(), await D.leerEstado()); } catch (e) { /* se queda con el estado actual */ } }
 let tGuardar = null;
@@ -281,7 +286,7 @@ const save = () => { clearTimeout(tGuardar); tGuardar = setTimeout(() => { D.gua
 let remote = [], remoteState = "loading";
 
 /* ---------- Inscritos (vienen de la lista interna) ---------- */
-const normalizar = x => ({ id:x.id || "", nombre:clean(String(x.nombre)), ficha:String(x.ficha||""), doc:digits(x.doc), juego:canon(x.juego), companero:digits(x.companero), companeroNombre:clean(String(x.companeroNombre || "")), companeroFicha:String(x.companeroFicha || ""), equipo:clean(String(x.equipo || "")) });
+const normalizar = x => ({ id:x.id || "", nombre:clean(String(x.nombre)), ficha:String(x.ficha||""), doc:digits(x.doc), juego:canon(x.juego) });
 async function loadRemote(){
   try {
     remote = (await D.listar()).map(normalizar).filter(p => p.nombre && p.doc && p.juego);
@@ -302,8 +307,9 @@ function renderInscritos(){
   $("#in-n").textContent = all.length; $("#in-src").textContent = srcLabel();
   $("#in-tabs").innerHTML = GAMES.map(g => `<button data-ig="${g}" class="${g===invGame?"on":""}">${g} · ${ofGame(g).length}</button>`).join("");
   const otrosJ = {}; all.forEach(p => (otrosJ[p.doc] = otrosJ[p.doc] || []).push(p.juego));
+  const equipoDe = {}; teamsModel().teams.forEach(t => { equipoDe[t.a.doc] = t.name; equipoDe[t.b.doc] = t.name; });
   const list = ofGame(invGame).filter(p => !q || norm(p.nombre + " " + p.doc).includes(q));
-  $("#in-list").innerHTML = list.length ? list.map((p,i) => `<div class="pt"><span class="sd">${pad(i+1)}</span><div style="min-width:0;flex:1"><b>${esc(p.nombre)}</b><small>CC ${esc(p.doc)}${p.ficha ? " · Ficha " + esc(p.ficha) : ""}${invGame === "Dominó" && p.companero ? " · Compañero: " + (p.companeroNombre ? esc(p.companeroNombre) + " (CC " + esc(p.companero) + (p.companeroFicha ? ", ficha " + esc(p.companeroFicha) : "") + ")" : "CC " + esc(p.companero)) + (p.equipo ? " · Equipo: " + esc(p.equipo) : "") : ""}${otrosJ[p.doc].length > 1 ? " · También en " + esc(otrosJ[p.doc].filter(j => j !== invGame).join(" y ")) : ""}</small></div>${D.modo !== "demo" && p.id ? `<button class="link" data-del="${esc(p.id)}" title="Quitar de la lista">✕</button>` : ""}</div>`).join("")
+  $("#in-list").innerHTML = list.length ? list.map((p,i) => `<div class="pt"><span class="sd">${pad(i+1)}</span><div style="min-width:0;flex:1"><b>${esc(p.nombre)}</b><small>CC ${esc(p.doc)}${p.ficha ? " · Ficha " + esc(p.ficha) : ""}${invGame === "Dominó" && equipoDe[p.doc] ? " · Equipo: " + esc(equipoDe[p.doc]) : ""}${otrosJ[p.doc].length > 1 ? " · También en " + esc(otrosJ[p.doc].filter(j => j !== invGame).join(" y ")) : ""}</small></div>${D.modo !== "demo" && p.id ? `<button class="link" data-del="${esc(p.id)}" title="Quitar de la lista">✕</button>` : ""}</div>`).join("")
     : `<div class="empty">${q ? "Sin resultados." : "Aún no hay inscritos en " + invGame + "."}</div>`;
 }
 $("#in-tabs").addEventListener("click", e => { const b = e.target.closest("[data-ig]"); if (b){ invGame = b.dataset.ig; renderInscritos(); } });
@@ -336,54 +342,51 @@ $("#in-sheet").addEventListener("click", async () => {
 });
 document.addEventListener("visibilitychange", async () => { if (!document.hidden){ await loadRemote(); if (D.modo !== "demo") await cargarEstado(); rerender(); } });
 
-/* ---------- EQUIPOS DE DOMINÓ: los arman los participantes ---------- */
+/* ---------- EQUIPOS DE DOMINÓ: los crea el organizador ---------- */
+let eqSel = [];   // cédulas de los jugadores marcados para el equipo nuevo
 function teamsModel(){
   const dom = ofGame("Dominó"), by = Object.fromEntries(dom.map(p => [p.doc, p]));
   const used = new Set(), teams = [];
-  const add = (a, b, manual) => { used.add(a.doc); used.add(b.doc); const key = [a.doc, b.doc].sort().join("-"); teams.push({ key, a, b, manual }); };
-  S.mpairs.forEach(m => { const a = by[m.a], b = by[m.b]; if (a && b && !used.has(a.doc) && !used.has(b.doc)) add(a, b, true); });
-  dom.forEach(a => {
-    if (used.has(a.doc) || !a.companero) return;
-    const b = by[a.companero];
-    if (b && !used.has(b.doc) && b.companero === a.doc) add(a, b, false);
+  (S.teams || []).forEach(t => {
+    if (used.has(t.a) || used.has(t.b)) return;          // un jugador solo puede estar en un equipo
+    used.add(t.a); used.add(t.b);
+    const a = by[t.a] || { doc:t.a, nombre:t.an || "(ya no está inscrito)", ficha:"", faltante:true };
+    const b = by[t.b] || { doc:t.b, nombre:t.bn || "(ya no está inscrito)", ficha:"", faltante:true };
+    teams.push({ key:t.id, id:t.id, a, b, name:t.name || `${first(a.nombre)} & ${first(b.nombre)}` });
   });
-  teams.forEach(t => {
-    t.elegido = !!(t.a.equipo || t.b.equipo);
-    t.distintos = !!(t.a.equipo && t.b.equipo && norm(t.a.equipo) !== norm(t.b.equipo));
-    t.name = S.names[t.key] || t.a.equipo || t.b.equipo || `${first(t.a.nombre)} & ${first(t.b.nombre)}`;
-  });
-  const pending = dom.filter(p => !used.has(p.doc)).map(p => {
-    let why = "Sin compañero indicado";
-    if (p.companero){
-      const b = by[p.companero];
-      why = !b ? `Eligió a ${p.companeroNombre ? p.companeroNombre + " (CC " + p.companero + (p.companeroFicha ? ", ficha " + p.companeroFicha : "") + ")" : "la cédula " + p.companero}, que aún no se inscribe en Dominó` : b.companero === p.doc ? "" : `Eligió a ${b.nombre}, que todavía no lo eligió a él/ella`;
-    }
-    return { ...p, why };
-  });
-  return { teams, pending };
+  return { teams, pending: dom.filter(p => !used.has(p.doc)) };
 }
 function renderEquipos(){
-  const { teams, pending } = teamsModel();
-  $("#eq-n").textContent = teams.length; $("#eq-p").textContent = pending.length + " sin pareja";
-  const man = $("#eq-man"); man.classList.toggle("hide", pending.length < 2);
-  const opts = '<option value="">Elige jugador…</option>' + pending.map(p => `<option value="${esc(p.doc)}">${esc(p.nombre)} (CC ${esc(p.doc)})</option>`).join("");
-  $("#m-a").innerHTML = opts; $("#m-b").innerHTML = opts;
-  let h = teams.map((t,i) => `<div class="team"><div class="top"><div><h3>${esc(t.name)}</h3><span class="meta">Pareja ${pad(i+1)}${t.manual ? " · unida a mano" : " · se eligieron entre sí"}${t.distintos && !S.names[t.key] ? " · nombres distintos: " + esc(t.a.equipo) + " / " + esc(t.b.equipo) : ""}</span></div><span class="chip">Confirmada</span></div>
-    <div class="duo"><div><small>Jugador 1</small><b>${esc(t.a.nombre)}</b><i>CC ${esc(t.a.doc)}</i></div><div><small>Jugador 2</small><b>${esc(t.b.nombre)}</b><i>CC ${esc(t.b.doc)}</i></div></div>
-    <div><button class="link" data-rn="${t.key}">✎ Nombre del equipo</button>${t.manual ? ` <button class="link" data-sep="${t.key}">✂ Separar</button>` : ""}</div></div>`).join("");
-  if (pending.length) h += `<h2 style="font:700 11px var(--f-mono);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:6px 2px 0">Sin pareja confirmada</h2>` +
-    pending.map(p => `<div class="team"><div class="top"><div><h3 style="font-size:15px">${esc(p.nombre)}</h3><span class="meta">CC ${esc(p.doc)}</span></div><span class="chip mute">Pendiente</span></div>${p.why ? `<p class="help" style="margin:0">${esc(p.why)}</p>` : ""}</div>`).join("");
-  $("#eq-list").innerHTML = h || `<div class="empty">Aún no hay jugadores de Dominó.</div>`;
+  const { teams, pending } = teamsModel(), q = norm($("#eq-q").value || "");
+  eqSel = eqSel.filter(d => pending.some(p => p.doc === d));
+  $("#eq-n").textContent = teams.length; $("#eq-p").textContent = pending.length + " sin equipo";
+  $("#eq-sel").textContent = eqSel.length + " de 2"; $("#eq-go").disabled = eqSel.length !== 2;
+  const lista = pending.filter(p => !q || norm(p.nombre + " " + p.doc).includes(q));
+  $("#eq-pick").innerHTML = lista.length ? lista.map((p, i) => `<button type="button" class="pt ${eqSel.includes(p.doc) ? "sel" : ""}" data-pick="${esc(p.doc)}"><span class="sd">${eqSel.includes(p.doc) ? "✓" : pad(i+1)}</span><div style="min-width:0;flex:1"><b>${esc(p.nombre)}</b><small>CC ${esc(p.doc)}${p.ficha ? " · Ficha " + esc(p.ficha) : ""}</small></div></button>`).join("")
+    : `<div class="empty">${q ? "Sin resultados." : ofGame("Dominó").length ? "Todos los jugadores ya tienen equipo." : "Aún no hay jugadores inscritos en Dominó."}</div>`;
+  $("#eq-list").innerHTML = teams.map((t, i) => `<div class="team"><div class="top"><div><h3>${esc(t.name)}</h3><span class="meta">Equipo ${pad(i+1)}</span></div><span class="chip">Listo</span></div>
+    <div class="duo"><div><small>Jugador 1</small><b>${esc(t.a.nombre)}</b><i>CC ${esc(t.a.doc)}${t.a.ficha ? " · Ficha " + esc(t.a.ficha) : ""}</i></div><div><small>Jugador 2</small><b>${esc(t.b.nombre)}</b><i>CC ${esc(t.b.doc)}${t.b.ficha ? " · Ficha " + esc(t.b.ficha) : ""}</i></div></div>
+    <div><button class="link" data-rn="${esc(t.id)}">✎ Nombre del equipo</button> <button class="link" data-sep="${esc(t.id)}">✂ Deshacer equipo</button></div></div>`).join("");
 }
-$("#m-go").addEventListener("click", () => {
-  const a = $("#m-a").value, b = $("#m-b").value;
-  if (!a || !b || a === b) return alert("Elige dos jugadores distintos.");
-  S.mpairs.push({ a, b }); save(); renderEquipos();
+$("#eq-q").addEventListener("input", renderEquipos);
+$("#eq-pick").addEventListener("click", e => {
+  const b = e.target.closest("[data-pick]"); if (!b) return;
+  const d = b.dataset.pick;
+  if (eqSel.includes(d)) eqSel = eqSel.filter(x => x !== d);
+  else { eqSel.push(d); if (eqSel.length > 2) eqSel.shift(); }   // al marcar un tercero, se suelta el primero
+  renderEquipos();
+});
+$("#eq-go").addEventListener("click", () => {
+  if (eqSel.length !== 2) return;
+  const por = Object.fromEntries(ofGame("Dominó").map(p => [p.doc, p]));
+  const [x, y] = eqSel;
+  S.teams.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5), name: clean($("#eq-nom").value).slice(0, 60), a: x, b: y, an: por[x].nombre, bn: por[y].nombre });
+  eqSel = []; $("#eq-nom").value = ""; save(); renderEquipos();
 });
 $("#eq-list").addEventListener("click", e => {
   const r = e.target.closest("[data-rn]"), s = e.target.closest("[data-sep]");
-  if (r){ const t = teamsModel().teams.find(x => x.key === r.dataset.rn), n = prompt("Nombre del equipo:", t.name); if (n && n.trim()){ S.names[t.key] = n.trim(); save(); renderEquipos(); } }
-  if (s){ S.mpairs = S.mpairs.filter(m => [m.a, m.b].sort().join("-") !== s.dataset.sep); save(); renderEquipos(); }
+  if (r){ const t = S.teams.find(x => x.id === r.dataset.rn), n = prompt("Nombre del equipo:", (teamsModel().teams.find(x => x.id === t.id) || {}).name || ""); if (n && n.trim()){ t.name = n.trim().slice(0, 60); save(); renderEquipos(); } }
+  if (s && confirm("¿Deshacer este equipo? Los dos jugadores quedan libres.")){ S.teams = S.teams.filter(x => x.id !== s.dataset.sep); save(); renderEquipos(); }
 });
 
 /* ---------- AJEDREZ: clasificación (sistema suizo) ---------- */
@@ -552,9 +555,9 @@ function bracketModel(){
 function renderLlaves(){
   const el = $("#bk"), { teams } = teamsModel();
   if (!S.bk){
-    el.innerHTML = teams.length < 2 ? `<div class="card empty">Se necesitan al menos 2 parejas confirmadas (hay ${teams.length}).<br><br><button class="btn sm" data-go="equipos" style="margin:auto">Ver equipos</button></div>` :
-      `<div class="card"><div class="stat"><div><span class="big">${teams.length}</span> <span class="mono" style="font-size:10px;color:var(--muted)">PAREJAS</span></div></div>
-       <button class="btn" id="bk-gen" style="margin-top:14px">Generar llaves</button><p class="note">Las parejas se acomodan en el cuadro al azar.</p></div>`;
+    el.innerHTML = teams.length < 2 ? `<div class="card empty">Se necesitan al menos 2 equipos creados (hay ${teams.length}).<br><br><button class="btn sm" data-go="equipos" style="margin:auto">Ver equipos</button></div>` :
+      `<div class="card"><div class="stat"><div><span class="big">${teams.length}</span> <span class="mono" style="font-size:10px;color:var(--muted)">EQUIPOS</span></div></div>
+       <button class="btn" id="bk-gen" style="margin-top:14px">Generar llaves</button><p class="note">Los equipos se acomodan en el cuadro al azar.</p></div>`;
     return;
   }
   const M = bracketModel(), T = S.bk.teams;
