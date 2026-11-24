@@ -183,17 +183,8 @@
   <header class="hero small"><h1>Panel del organizador</h1><p>Inscritos por juego. Esta pantalla es solo para ti.</p></header>
   <div class="card">
     <div class="stat"><div><span class="big" id="in-n">0</span> <span class="mono" style="font-size:10px;color:var(--muted)">INSCRITOS</span></div><span class="chip mute" id="in-src"></span></div>
-    <div class="row2" style="margin-top:12px">
-      <button class="btn sec" id="in-refresh">↻ Actualizar</button>
-      <button class="btn sec" id="in-add">+ Agregar</button>
-    </div>
+    <button class="btn sec" id="in-refresh" style="margin-top:12px">↻ Actualizar</button>
     <button class="link" id="in-sheet" style="margin-top:10px;width:100%">🔗 Conectar hoja de inscritos</button>
-    <form id="addf" class="hide" style="margin-top:12px" novalidate>
-      <div class="field"><input id="a-nombre" type="text" placeholder="Nombre y apellido"></div>
-      <div class="field"><input id="a-doc" type="text" inputmode="numeric" placeholder="Cédula"></div>
-      <div class="field"><select id="a-juego"><option value="Ajedrez">Ajedrez</option><option value="Dominó">Dominó</option><option value="Bingo">Bingo</option></select></div>
-      <button class="btn sm" type="submit">Agregar</button>
-    </form>
   </div>
   <div class="tabs" id="in-tabs" style="margin:0"></div>
   <input id="in-q" type="search" placeholder="Buscar por nombre o cédula...">
@@ -306,11 +297,11 @@ async function loadRemote(){
 }
 function people(){
   const seen = new Set(), out = [];
-  [...remote, ...S.manual.map(p => ({...p, manual:true}))].forEach(p => { if (p.doc && !seen.has(p.doc)){ seen.add(p.doc); out.push(p); } });
+  remote.forEach(p => { if (p.doc && !seen.has(p.doc)){ seen.add(p.doc); out.push(p); } });
   return out;
 }
 const ofGame = g => people().filter(p => p.juego === g);
-const srcLabel = () => ({none:"Solo manual", loading:"Cargando…", ok:"Hoja en línea", fail:"Hoja sin conexión"})[remoteState];
+const srcLabel = () => ({none:"Sin hoja", loading:"Cargando…", ok:"Hoja en línea", fail:"Hoja sin conexión"})[remoteState];
 
 let invGame = "Ajedrez";
 function renderInscritos(){
@@ -318,7 +309,7 @@ function renderInscritos(){
   $("#in-n").textContent = all.length; $("#in-src").textContent = srcLabel();
   $("#in-tabs").innerHTML = GAMES.map(g => `<button data-ig="${g}" class="${g===invGame?"on":""}">${g} · ${ofGame(g).length}</button>`).join("");
   const list = ofGame(invGame).filter(p => !q || norm(p.nombre + " " + p.doc).includes(q));
-  $("#in-list").innerHTML = list.length ? list.map((p,i) => `<div class="pt"><span class="sd">${pad(i+1)}</span><div style="min-width:0;flex:1"><b>${esc(p.nombre)}</b><small>CC ${esc(p.doc)}${p.ficha ? " · Ficha " + esc(p.ficha) : ""}</small></div>${p.manual ? `<button class="link" data-del="${esc(p.doc)}">✕</button>` : ""}</div>`).join("")
+  $("#in-list").innerHTML = list.length ? list.map((p,i) => `<div class="pt"><span class="sd">${pad(i+1)}</span><div style="min-width:0;flex:1"><b>${esc(p.nombre)}</b><small>CC ${esc(p.doc)}${p.ficha ? " · Ficha " + esc(p.ficha) : ""}</small></div></div>`).join("")
     : `<div class="empty">${q ? "Sin resultados." : "Aún no hay inscritos en " + invGame + "."}</div>`;
 }
 $("#in-tabs").addEventListener("click", e => { const b = e.target.closest("[data-ig]"); if (b){ invGame = b.dataset.ig; renderInscritos(); } });
@@ -330,16 +321,6 @@ $("#in-sheet").addEventListener("click", async () => {
   try { u.trim() ? localStorage.setItem(SHEET_KEY, u.trim()) : localStorage.removeItem(SHEET_KEY); } catch {}
   await loadRemote(); rerender();
 });
-$("#in-add").addEventListener("click", () => $("#addf").classList.toggle("hide"));
-$("#addf").addEventListener("submit", e => {
-  e.preventDefault();
-  const nombre = clean($("#a-nombre").value), doc = digits($("#a-doc").value), juego = $("#a-juego").value;
-  if (!nombre || doc.length < 5) return alert("Escribe nombre y cédula (solo números).");
-  const dup = people().find(p => p.doc === doc);
-  if (dup) return alert("Esa cédula ya está inscrita en " + dup.juego + ".");
-  S.manual.push({ nombre, doc, juego, ficha:"", companero:"" }); save(); e.target.reset(); renderInscritos();
-});
-$("#in-list").addEventListener("click", e => { const d = e.target.closest("[data-del]"); if (d && confirm("¿Quitar a esta persona?")){ S.manual = S.manual.filter(p => p.doc !== d.dataset.del); save(); renderInscritos(); } });
 
 /* ---------- EQUIPOS DE DOMINÓ: los arman los participantes ---------- */
 function teamsModel(){
