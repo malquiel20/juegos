@@ -11,5 +11,5 @@
  */
 window.TORNEO = {
   fichas: ["3493748", "3603930", "3174404", "3409199"],
-  supabase: { url: "", key: "" },
+  supabase: { url: "https://peqluovgvhvmsvhyizyw.supabase.co", key: "sb_publishable_ghnX9PlyarBIhncJnvi0eA_yzAxBW90" },
 };
