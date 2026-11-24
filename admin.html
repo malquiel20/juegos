@@ -212,7 +212,7 @@
 
 <!-- ===== BINGO ===== -->
 <section class="screen" id="s-bingo">
-  <header class="hero small"><h1>Bingo · Rondas</h1><p>Juegan primero los inscritos, por orden de registro. Los que agregues a mano van al final.</p></header>
+  <header class="hero small"><h1>Bingo · Rondas</h1><p>Primero los que solo se inscribieron en Bingo (por orden de registro), luego los que ya estaban en otro juego y al final los que agregues a mano.</p></header>
   <div id="bg"></div>
 </section>
 
@@ -298,7 +298,7 @@ async function loadRemote(clave){
 }
 function people(){
   const seen = new Set(), out = [];
-  remote.forEach(p => { if (p.doc && !seen.has(p.doc)){ seen.add(p.doc); out.push(p); } });
+  remote.forEach(p => { const k = p.doc + "|" + p.juego; if (p.doc && !seen.has(k)){ seen.add(k); out.push(p); } });
   return out;
 }
 const ofGame = g => people().filter(p => p.juego === g);
@@ -309,8 +309,9 @@ function renderInscritos(){
   const all = people(), q = norm($("#in-q").value || "");
   $("#in-n").textContent = all.length; $("#in-src").textContent = srcLabel();
   $("#in-tabs").innerHTML = GAMES.map(g => `<button data-ig="${g}" class="${g===invGame?"on":""}">${g} · ${ofGame(g).length}</button>`).join("");
+  const otrosJ = {}; all.forEach(p => (otrosJ[p.doc] = otrosJ[p.doc] || []).push(p.juego));
   const list = ofGame(invGame).filter(p => !q || norm(p.nombre + " " + p.doc).includes(q));
-  $("#in-list").innerHTML = list.length ? list.map((p,i) => `<div class="pt"><span class="sd">${pad(i+1)}</span><div style="min-width:0;flex:1"><b>${esc(p.nombre)}</b><small>CC ${esc(p.doc)}${p.ficha ? " · Ficha " + esc(p.ficha) : ""}</small></div></div>`).join("")
+  $("#in-list").innerHTML = list.length ? list.map((p,i) => `<div class="pt"><span class="sd">${pad(i+1)}</span><div style="min-width:0;flex:1"><b>${esc(p.nombre)}</b><small>CC ${esc(p.doc)}${p.ficha ? " · Ficha " + esc(p.ficha) : ""}${otrosJ[p.doc].length > 1 ? " · También en " + esc(otrosJ[p.doc].filter(j => j !== invGame).join(" y ")) : ""}</small></div></div>`).join("")
     : `<div class="empty">${q ? "Sin resultados." : "Aún no hay inscritos en " + invGame + "."}</div>`;
 }
 $("#in-tabs").addEventListener("click", e => { const b = e.target.closest("[data-ig]"); if (b){ invGame = b.dataset.ig; renderInscritos(); } });
@@ -458,7 +459,10 @@ $("#ch").addEventListener("click", e => {
 const bingoState = () => S.bingo || (S.bingo = { cartones:0, extras:[], jugadas:[] });
 function bingoModel(){
   const B = bingoState();
-  const reg = ofGame("Bingo").map(p => ({ key:"d:" + p.doc, nombre:p.nombre, insc:true }));            // en orden de registro
+  // Prioridad: 1) solo inscritos en Bingo, 2) inscritos en Bingo que ya estaban en otro juego, 3) adicionales.
+  const otros = {}; people().filter(p => p.juego !== "Bingo").forEach(p => (otros[p.doc] = otros[p.doc] || []).push(p.juego));
+  const bg = ofGame("Bingo").map(p => ({ key:"d:" + p.doc, nombre:p.nombre, insc:true, otro:otros[p.doc] ? otros[p.doc].join(" y ") : "" }));
+  const reg = [...bg.filter(p => !p.otro), ...bg.filter(p => p.otro)];                                  // cada grupo, en orden de registro
   const ext = B.extras.map(x => ({ key:"x:" + x.id, nombre:x.nombre, insc:false, id:x.id }));         // siempre al final
   const all = [...reg, ...ext], byKey = Object.fromEntries(all.map(p => [p.key, p]));
   const played = new Set(B.jugadas.flat());
@@ -470,7 +474,7 @@ function bingoModel(){
 function renderBingo(){
   const M = bingoModel(), n = M.n, base = M.B.jugadas.length;
   const fila = (p, i, quitar) => `<div class="pt" style="margin-top:6px"><span class="sd">${pad(i+1)}</span><div style="min-width:0;flex:1"><b>${esc(p.nombre)}</b></div>
-    <span class="chip ${p.insc ? "" : "mute"}">${p.insc ? "Inscrito" : "Adicional"}</span>${quitar && !p.insc ? `<button class="link" data-xdel="${esc(p.id)}" title="Quitar">✕</button>` : ""}</div>`;
+    <span class="chip ${p.insc && !p.otro ? "" : "mute"}">${!p.insc ? "Adicional" : p.otro ? "También en " + esc(p.otro) : "Inscrito"}</span>${quitar && !p.insc ? `<button class="link" data-xdel="${esc(p.id)}" title="Quitar">✕</button>` : ""}</div>`;
   let h = `<div class="card"><div class="stat"><div><span class="big">${M.reg.length + M.ext.length}</span> <span class="mono" style="font-size:10px;color:var(--muted)">JUGADORES</span></div>
       <span class="chip mute">${M.reg.length} inscritos · ${M.ext.length} adicionales</span></div>
     <div class="field" style="margin-top:14px"><label class="t" for="bg-n">Cartones de bingo disponibles</label>

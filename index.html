@@ -202,7 +202,7 @@
         <p class="help">Tú eliges tu pareja. Tu compañero también debe registrarse y escribir <b>tu cédula</b> aquí.</p></div>
       <button class="btn" id="go" type="submit">¡Participar! →</button>
       <div id="msg" class="msg" role="status" aria-live="polite"></div>
-      <p class="note">Cada cédula solo puede registrarse una vez, en un solo juego.</p>
+      <p class="note">Una cédula = un juego (Ajedrez o Dominó). El Bingo se puede sumar.</p>
     </form>
   </section>
   <footer class="f">Torneo de Juegos</footer>
@@ -233,8 +233,9 @@ async function enviar(d){
     const r = await fetch(URL_SCRIPT, { method:"POST", body: JSON.stringify(d) });
     return r.json();
   }
-  const lista = demoList(), dup = lista.find(x => x.doc === d.doc);
-  if (dup) return { ok:false, duplicado:true, juego:dup.juego };
+  const lista = demoList(), propios = lista.filter(x => x.doc === d.doc).map(x => x.juego);
+  if (propios.includes(d.juego)) return { ok:false, duplicado:true, juego:d.juego };
+  if (d.juego !== "Bingo"){ const otro = propios.find(j => j !== "Bingo"); if (otro) return { ok:false, duplicado:true, juego:otro }; }
   lista.push({ nombre:d.nombre, ficha:d.ficha, doc:d.doc, juego:d.juego, companero:d.comp });
   localStorage.setItem(DEMO_KEY, JSON.stringify(lista));
   return { ok:true };
@@ -260,7 +261,9 @@ $("#f").addEventListener("submit", async e => {
       show("ok", `¡Listo ${nombre.split(" ")[0]}! Quedaste inscrito en ${juego}.` + (juego === "Dominó" ? " Tu compañero debe registrarse con tu cédula." : ""));
       $("#f").reset(); $("#wrap-comp").classList.add("hide");
     } else if (j.duplicado){
-      show("err", `Esta cédula ya está inscrita en ${j.juego}. Solo se permite un registro por persona.`);
+      show("err", j.juego === juego
+        ? `Esta cédula ya está inscrita en ${j.juego}.`
+        : `Esta cédula ya está inscrita en ${j.juego}. Solo se permite un juego por persona (el Bingo sí se puede sumar).`);
     } else {
       show("err", "Revisa los datos e inténtalo de nuevo.");
     }

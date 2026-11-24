@@ -13,7 +13,7 @@
  *     en urlGoogleScript.
  *
  *  Se crea sola la pestaña "Inscritos" (una fila por persona).
- *  La cédula no se puede repetir en ningún juego.
+ *  Una cédula no se repite en el mismo juego; Ajedrez y Dominó son excluyentes; el Bingo se puede sumar.
  * =====================================================================
  */
 
@@ -35,8 +35,17 @@ function doPost(e) {
 
     var h = hoja();
     var filas = h.getLastRow() > 1 ? h.getRange(2, 1, h.getLastRow() - 1, COLUMNAS_INSCRITOS.length).getValues() : [];
+    // Reglas por cédula: no se repite en el mismo juego, y Ajedrez/Dominó son excluyentes entre sí.
+    // El Bingo siempre se puede sumar (una sola vez) aunque ya esté inscrita en otro juego.
+    var existentes = [];
     for (var i = 0; i < filas.length; i++) {
-      if (soloNumeros(filas[i][3]) === doc) return json({ ok: false, duplicado: true, juego: String(filas[i][4]) });
+      if (soloNumeros(filas[i][3]) === doc) existentes.push(String(filas[i][4]));
+    }
+    if (existentes.indexOf(juego) >= 0) return json({ ok: false, duplicado: true, juego: juego });
+    if (juego !== "Bingo") {
+      for (var k = 0; k < existentes.length; k++) {
+        if (existentes[k] !== "Bingo") return json({ ok: false, duplicado: true, juego: existentes[k] });
+      }
     }
     h.appendRow([new Date(), nombre, ficha, doc, juego, juego === "Dominó" ? comp : ""]);
     return json({ ok: true });
