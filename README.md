@@ -7,7 +7,7 @@ Dos páginas que usan **la misma lista** (una hoja de Google Sheets tuya). Funci
 
 | Archivo | Para qué sirve |
 |---|---|
-| `index.html` | Registro: nombre y apellido, ficha (lista), cédula y juego (lista). En Dominó pide además la cédula del compañero. |
+| `index.html` | Registro: nombre y apellido, ficha (lista), cédula y juego (lista). En Dominó pide además el **nombre y apellido** y la **cédula** del compañero. |
 | `admin.html` | Panel: inscritos por juego, equipos de dominó, clasificación de ajedrez y llaves de dominó. |
 | `js/config.js` | **Lo único que editas**: la URL de tu script y las fichas. |
 | `google-apps-script/Codigo.gs` | Script que guarda las inscripciones en tu hoja y evita cédulas repetidas. |
@@ -28,7 +28,7 @@ Mientras `urlGoogleScript` esté vacío en `js/config.js`, las páginas funciona
    ```
 8. Para probar, abre esa URL en el navegador: debe decir *"El script del torneo está funcionando."*
 
-Se crea sola la pestaña **Inscritos** en tu hoja (una fila por persona). Si después cambias el script: **Implementar → Administrar implementaciones → ✏️ Editar → Versión: Nueva versión → Implementar** (la URL no cambia).
+Se crea sola la pestaña **Inscritos** en tu hoja (una fila por persona; en Dominó guarda también el nombre y la cédula del compañero). Si después cambias el script: **Implementar → Administrar implementaciones → ✏️ Editar → Versión: Nueva versión → Implementar** (la URL no cambia).
 
 ## Cómo funciona
 - **Reglas por cédula:** no se repite en el mismo juego; **Ajedrez y Dominó son excluyentes** (una persona solo puede estar en uno de los dos); el **Bingo se puede sumar** (una vez) aunque ya esté en otro juego. La ficha puede repetirse. Las reglas se aplican en el script, así que si lo cambias hay que publicar **Nueva versión**.

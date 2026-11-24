@@ -20,7 +20,7 @@
 var CLAVE_ADMIN = "cambia-esta-clave";
 
 var HOJA_INSCRITOS = "Inscritos";
-var COLUMNAS_INSCRITOS = ["Fecha", "Nombre", "Ficha", "Cédula", "Juego", "Compañero (dominó)"];
+var COLUMNAS_INSCRITOS = ["Fecha", "Nombre", "Ficha", "Cédula", "Juego", "Cédula del compañero (dominó)", "Nombre del compañero (dominó)"];
 var JUEGOS = ["Ajedrez", "Dominó", "Bingo"];
 
 function doPost(e) {
@@ -29,9 +29,10 @@ function doPost(e) {
     lock.waitLock(20000);
     var d = JSON.parse(e.postData.contents);
     var nombre = texto(d.nombre).replace(/\s+/g, " "), ficha = texto(d.ficha);
-    var doc = soloNumeros(d.doc), juego = texto(d.juego), comp = soloNumeros(d.comp);
+    var doc = soloNumeros(d.doc), juego = texto(d.juego), comp = soloNumeros(d.comp), compNombre = texto(d.compNombre).replace(/\s+/g, " ");
     if (nombre.indexOf(" ") < 0 || !ficha || doc.length < 5 || JUEGOS.indexOf(juego) < 0) throw new Error("Datos incompletos");
     if (juego === "Dominó" && (comp.length < 5 || comp === doc)) throw new Error("Falta la cédula del compañero");
+    if (juego === "Dominó" && compNombre.indexOf(" ") < 0) throw new Error("Falta el nombre y apellido del compañero");
 
     var h = hoja();
     var filas = h.getLastRow() > 1 ? h.getRange(2, 1, h.getLastRow() - 1, COLUMNAS_INSCRITOS.length).getValues() : [];
@@ -47,7 +48,7 @@ function doPost(e) {
         if (existentes[k] !== "Bingo") return json({ ok: false, duplicado: true, juego: existentes[k] });
       }
     }
-    h.appendRow([new Date(), nombre, ficha, doc, juego, juego === "Dominó" ? comp : ""]);
+    h.appendRow([new Date(), nombre, ficha, doc, juego, juego === "Dominó" ? comp : "", juego === "Dominó" ? compNombre : ""]);
     return json({ ok: true });
   } catch (err) {
     return json({ ok: false, error: String(err.message || err) });
@@ -66,7 +67,7 @@ function doGet(e) {
       return json({
         ok: true,
         inscritos: filas.map(function (f) {
-          return { nombre: String(f[1]), ficha: String(f[2]), doc: soloNumeros(f[3]), juego: String(f[4]), companero: soloNumeros(f[5]) };
+          return { nombre: String(f[1]), ficha: String(f[2]), doc: soloNumeros(f[3]), juego: String(f[4]), companero: soloNumeros(f[5]), companeroNombre: String(f[6] || "") };
         }),
       });
     }
@@ -118,6 +119,8 @@ function hoja() {
     h.getRange("C:D").setNumberFormat("@");   // texto: no pierde ceros ni formato
     h.getRange("F:F").setNumberFormat("@");
   }
+  // Hojas creadas antes de esta versión: agrega el título de la columna del nombre del compañero.
+  if (!h.getRange(1, 7).getValue()) h.getRange(1, 7).setValue(COLUMNAS_INSCRITOS[6]).setFontWeight("bold").setBackground("#e6ecd9");
   return h;
 }
 

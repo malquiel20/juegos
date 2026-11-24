@@ -197,9 +197,11 @@
       <div class="field"><label class="t" for="doc">Número de cédula</label><input id="doc" type="text" inputmode="numeric" placeholder="Solo números"></div>
       <div class="field"><label class="t" for="juego">Juego en el que vas a participar</label>
         <select id="juego"><option value="">Elige un juego…</option><option value="Ajedrez">Ajedrez</option><option value="Dominó">Dominó</option><option value="Bingo">Bingo</option></select></div>
-      <div class="field hide" id="wrap-comp"><label class="t" for="comp">Cédula de tu compañero de dominó</label>
+      <div class="field hide" id="wrap-comp"><label class="t" for="compn">Nombre y apellido de tu compañero de dominó</label>
+        <input id="compn" type="text" autocomplete="off" placeholder="Ej. Pedro Gómez">
+        <label class="t" for="comp" style="margin-top:12px">Cédula de tu compañero</label>
         <input id="comp" type="text" inputmode="numeric" placeholder="Solo números">
-        <p class="help">Tú eliges tu pareja. Tu compañero también debe registrarse y escribir <b>tu cédula</b> aquí.</p></div>
+        <p class="help">Tú eliges tu pareja. Tu compañero también debe registrarse y escribir <b>tu nombre y tu cédula</b> aquí.</p></div>
       <button class="btn" id="go" type="submit">¡Participar! →</button>
       <div id="msg" class="msg" role="status" aria-live="polite"></div>
       <p class="note">Una cédula = un juego (Ajedrez o Dominó). El Bingo se puede sumar.</p>
@@ -236,7 +238,7 @@ async function enviar(d){
   const lista = demoList(), propios = lista.filter(x => x.doc === d.doc).map(x => x.juego);
   if (propios.includes(d.juego)) return { ok:false, duplicado:true, juego:d.juego };
   if (d.juego !== "Bingo"){ const otro = propios.find(j => j !== "Bingo"); if (otro) return { ok:false, duplicado:true, juego:otro }; }
-  lista.push({ nombre:d.nombre, ficha:d.ficha, doc:d.doc, juego:d.juego, companero:d.comp });
+  lista.push({ nombre:d.nombre, ficha:d.ficha, doc:d.doc, juego:d.juego, companero:d.comp, companeroNombre:d.compNombre });
   localStorage.setItem(DEMO_KEY, JSON.stringify(lista));
   return { ok:true };
 }
@@ -244,19 +246,21 @@ async function enviar(d){
 $("#f").addEventListener("submit", async e => {
   e.preventDefault();
   const nombre = clean($("#nombre").value), ficha = $("#ficha").value, doc = digits($("#doc").value), juego = $("#juego").value;
-  const comp = juego === "Dominó" ? digits($("#comp").value) : "";
+  const comp = juego === "Dominó" ? digits($("#comp").value) : "", compNombre = juego === "Dominó" ? clean($("#compn").value) : "";
   if (!nombre.includes(" ")) return show("err", "Escribe nombre y apellido.");
   if (!ficha) return show("err", "Elige tu número de ficha.");
   if (doc.length < 5) return show("err", "Revisa tu número de cédula.");
   if (!juego) return show("err", "Elige el juego en el que vas a participar.");
   if (juego === "Dominó"){
+    if (!compNombre.includes(" ")) return show("err", "Escribe el nombre y apellido de tu compañero de dominó.");
+    if (compNombre.toLowerCase() === nombre.toLowerCase()) return show("err", "Tu compañero no puede ser tú: escribe el nombre de tu pareja.");
     if (comp.length < 5) return show("err", "Escribe la cédula de tu compañero de dominó.");
     if (comp === doc) return show("err", "Tu compañero no puede ser tú: escribe la cédula de tu pareja.");
   }
 
   btn.disabled = true; msg.className = "msg";
   try {
-    const j = await enviar({ nombre, ficha, doc, juego, comp });
+    const j = await enviar({ nombre, ficha, doc, juego, comp, compNombre });
     if (j.ok){
       show("ok", `¡Listo ${nombre.split(" ")[0]}! Quedaste inscrito en ${juego}.` + (juego === "Dominó" ? " Tu compañero debe registrarse con tu cédula." : ""));
       $("#f").reset(); $("#wrap-comp").classList.add("hide");

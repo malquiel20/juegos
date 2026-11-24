@@ -280,7 +280,7 @@ const save = () => { try { localStorage.setItem(LS, JSON.stringify(S)); } catch 
 let remote = [], remoteState = URL_SCRIPT ? "loading" : "demo";
 
 /* ---------- Inscritos (vienen de la lista interna) ---------- */
-const normalizar = x => ({ nombre:clean(String(x.nombre)), ficha:String(x.ficha||""), doc:digits(x.doc), juego:canon(x.juego), companero:digits(x.companero) });
+const normalizar = x => ({ nombre:clean(String(x.nombre)), ficha:String(x.ficha||""), doc:digits(x.doc), juego:canon(x.juego), companero:digits(x.companero), companeroNombre:clean(String(x.companeroNombre || "")) });
 async function loadRemote(clave){
   if (!URL_SCRIPT){
     try { remote = (JSON.parse(localStorage.getItem(DEMO_KEY)) || []).map(normalizar); } catch { remote = []; }
@@ -311,7 +311,7 @@ function renderInscritos(){
   $("#in-tabs").innerHTML = GAMES.map(g => `<button data-ig="${g}" class="${g===invGame?"on":""}">${g} · ${ofGame(g).length}</button>`).join("");
   const otrosJ = {}; all.forEach(p => (otrosJ[p.doc] = otrosJ[p.doc] || []).push(p.juego));
   const list = ofGame(invGame).filter(p => !q || norm(p.nombre + " " + p.doc).includes(q));
-  $("#in-list").innerHTML = list.length ? list.map((p,i) => `<div class="pt"><span class="sd">${pad(i+1)}</span><div style="min-width:0;flex:1"><b>${esc(p.nombre)}</b><small>CC ${esc(p.doc)}${p.ficha ? " · Ficha " + esc(p.ficha) : ""}${otrosJ[p.doc].length > 1 ? " · También en " + esc(otrosJ[p.doc].filter(j => j !== invGame).join(" y ")) : ""}</small></div></div>`).join("")
+  $("#in-list").innerHTML = list.length ? list.map((p,i) => `<div class="pt"><span class="sd">${pad(i+1)}</span><div style="min-width:0;flex:1"><b>${esc(p.nombre)}</b><small>CC ${esc(p.doc)}${p.ficha ? " · Ficha " + esc(p.ficha) : ""}${invGame === "Dominó" && p.companero ? " · Compañero: " + (p.companeroNombre ? esc(p.companeroNombre) + " (CC " + esc(p.companero) + ")" : "CC " + esc(p.companero)) : ""}${otrosJ[p.doc].length > 1 ? " · También en " + esc(otrosJ[p.doc].filter(j => j !== invGame).join(" y ")) : ""}</small></div></div>`).join("")
     : `<div class="empty">${q ? "Sin resultados." : "Aún no hay inscritos en " + invGame + "."}</div>`;
 }
 $("#in-tabs").addEventListener("click", e => { const b = e.target.closest("[data-ig]"); if (b){ invGame = b.dataset.ig; renderInscritos(); } });
@@ -339,7 +339,7 @@ function teamsModel(){
     let why = "Sin compañero indicado";
     if (p.companero){
       const b = by[p.companero];
-      why = !b ? `Eligió la cédula ${p.companero} (aún no se inscribe en Dominó)` : b.companero === p.doc ? "" : `Eligió a ${b.nombre}, que todavía no lo eligió a él/ella`;
+      why = !b ? `Eligió a ${p.companeroNombre ? p.companeroNombre + " (CC " + p.companero + ")" : "la cédula " + p.companero}, que aún no se inscribe en Dominó` : b.companero === p.doc ? "" : `Eligió a ${b.nombre}, que todavía no lo eligió a él/ella`;
     }
     return { ...p, why };
   });
