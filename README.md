@@ -41,11 +41,11 @@ Desde el panel puedes **descargar la lista en Excel/CSV**, **quitar** a una pers
 - Una **cédula** no se repite en el mismo juego.
 - **Ajedrez y Dominó son excluyentes**: una persona solo puede estar en uno de los dos.
 - El **Bingo se puede sumar** (una vez) aunque la persona ya esté en otro juego.
-- En **Dominó** se piden además el **nombre y apellido**, la **cédula** y la **ficha** (se elige de la lista) del compañero. La ficha se elige de una lista (`js/config.js`) y puede repetirse.
+- En **Dominó** se piden además el **nombre y apellido**, la **cédula** y la **ficha** (se elige de la lista) del compañero, y un **nombre de equipo** (opcional). La ficha se elige de una lista (`js/config.js`) y puede repetirse.
 
 ## Panel del organizador
 - **Inscritos:** quién se registró en cada juego (con buscador).
-- **Equipos (dominó):** los arman los participantes: una pareja queda confirmada cuando los dos se escriben mutuamente. Los demás quedan *pendientes* y puedes unirlos a mano.
+- **Equipos (dominó):** los arman los participantes (con el nombre que le pongan al equipo; si no escriben ninguno se muestra *Nombre & Nombre*, y tú puedes cambiarlo con **✎ Nombre del equipo**): una pareja queda confirmada cuando los dos se escriben mutuamente. Los demás quedan *pendientes* y puedes unirlos a mano.
 - **Ajedrez:** sistema suizo. Eliges las rondas, el programa empareja y tú marcas cada resultado (1-0, ½, 0-1). Victoria 1, tablas ½, descanso 1. Desempate Buchholz.
 - **Bingo:** escribes cuántos **cartones** hay. Cada ronda juegan tantos jugadores como cartones: primero los que solo se inscribieron en Bingo (por orden de registro), luego los que ya estaban en otro juego, y al final los que agregues a mano.
 - **Llaves (dominó):** eliminación directa con las parejas confirmadas. Toca una pareja para marcarla ganadora.

@@ -197,13 +197,16 @@
       <div class="field"><label class="t" for="doc">Número de cédula</label><input id="doc" type="text" inputmode="numeric" placeholder="Solo números"></div>
       <div class="field"><label class="t" for="juego">Juego en el que vas a participar</label>
         <select id="juego"><option value="">Elige un juego…</option><option value="Ajedrez">Ajedrez</option><option value="Dominó">Dominó</option><option value="Bingo">Bingo</option></select></div>
-      <div class="field hide" id="wrap-comp"><label class="t" for="compn">Nombre y apellido de tu compañero de dominó</label>
+      <div class="field hide" id="wrap-comp">
+        <label class="t" for="equipo">Nombre del equipo <span style="font-weight:400;color:var(--muted)">(opcional)</span></label>
+        <input id="equipo" type="text" maxlength="60" autocomplete="off" placeholder="Ej. Los Capicúas" style="margin-bottom:12px">
+        <label class="t" for="compn">Nombre y apellido de tu compañero de dominó</label>
         <input id="compn" type="text" autocomplete="off" placeholder="Ej. Pedro Gómez">
         <label class="t" for="comp" style="margin-top:12px">Cédula de tu compañero</label>
         <input id="comp" type="text" inputmode="numeric" placeholder="Solo números">
         <label class="t" for="compf" style="margin-top:12px">Ficha de tu compañero</label>
         <select id="compf"><option value="">Elige su ficha…</option></select>
-        <p class="help">Tú eliges tu pareja. Tu compañero también debe registrarse y escribir <b>tu nombre, tu cédula y tu ficha</b> aquí.</p></div>
+        <p class="help">Tú eliges tu pareja. Tu compañero también debe registrarse y escribir <b>tu nombre, tu cédula y tu ficha</b> aquí. Si le pones nombre al equipo, mejor que sea el mismo en los dos registros.</p></div>
       <button class="btn" id="go" type="submit">¡Participar! →</button>
       <div id="msg" class="msg" role="status" aria-live="polite"></div>
       <p class="note">Una cédula = un juego (Ajedrez o Dominó). El Bingo se puede sumar.</p>
@@ -237,7 +240,7 @@ const enviar = async d => { await listo; return D.registrar(d); };
 $("#f").addEventListener("submit", async e => {
   e.preventDefault();
   const nombre = clean($("#nombre").value), ficha = $("#ficha").value, doc = digits($("#doc").value), juego = $("#juego").value;
-  const comp = juego === "Dominó" ? digits($("#comp").value) : "", compNombre = juego === "Dominó" ? clean($("#compn").value) : "", compFicha = juego === "Dominó" ? $("#compf").value : "";
+  const comp = juego === "Dominó" ? digits($("#comp").value) : "", compNombre = juego === "Dominó" ? clean($("#compn").value) : "", compFicha = juego === "Dominó" ? $("#compf").value : "", equipo = juego === "Dominó" ? clean($("#equipo").value).slice(0, 60) : "";
   if (!nombre.includes(" ")) return show("err", "Escribe nombre y apellido.");
   if (!ficha) return show("err", "Elige tu número de ficha.");
   if (doc.length < 5) return show("err", "Revisa tu número de cédula.");
@@ -252,7 +255,7 @@ $("#f").addEventListener("submit", async e => {
 
   btn.disabled = true; msg.className = "msg";
   try {
-    const j = await enviar({ nombre, ficha, doc, juego, comp, compNombre, compFicha });
+    const j = await enviar({ nombre, ficha, doc, juego, comp, compNombre, compFicha, equipo });
     if (j.ok){
       show("ok", `¡Listo ${nombre.split(" ")[0]}! Quedaste inscrito en ${juego}.` + (juego === "Dominó" ? " Tu compañero debe registrarse con tu cédula." : ""));
       $("#f").reset(); $("#wrap-comp").classList.add("hide");
