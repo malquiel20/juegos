@@ -35,7 +35,7 @@ Supabase gratuito **pausa el proyecto tras 1 semana sin usarse**; se reactiva co
 - `inscritos.json`: la lista de inscritos (la base de datos). Se guarda una copia de seguridad `.bak` en cada cambio.
 - `estado.json`: parejas de dominó, llaves, ajedrez y bingo del panel.
 
-Desde el panel, en **Inscritos**, puedes **descargar la lista en Excel/CSV**, **quitar** a una persona (✕), **vaciar** la lista de inscritos o **borrar todo y empezar de cero** (inscritos, equipos y resultados). Los dos últimos piden escribir `BORRAR`. Úsalos al terminar las pruebas.
+Desde el panel, en **Inscritos**, puedes **descargar la lista en Excel/CSV**, **quitar** a una persona (✕), **Borrar registro ya** (borra todos los inscritos) o **Borrar todo ya** (inscritos, equipos y resultados). Los dos piden una confirmación Sí/No. Úsalos al terminar las pruebas.
 
 ## Reglas de inscripción
 - Una **cédula** no se repite en el mismo juego.

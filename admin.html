@@ -190,7 +190,7 @@
     <button class="btn sec" id="in-refresh" style="margin-top:12px">↻ Actualizar</button>
     <button class="link" id="in-csv" style="margin-top:10px;width:100%">⬇ Descargar la lista (Excel / CSV)</button>
     <button class="link" id="in-sheet" style="margin-top:6px;width:100%"></button>
-    <button class="link" id="in-reset" style="margin-top:2px;width:100%;color:var(--err)">⚠ Borrar todo y empezar de cero (inscritos, equipos y resultados)</button>
+    <button class="link" id="in-reset" style="margin-top:2px;width:100%;color:var(--err)">⚠ Borrar todo ya (inscritos, equipos y resultados)</button>
   </div>
   <div class="tabs" id="in-tabs" style="margin:0"></div>
   <input id="in-q" type="search" placeholder="Buscar por nombre o cédula...">
@@ -327,27 +327,19 @@ $("#in-list").addEventListener("click", async e => {
   if (r && !r.ok && r.error !== "cancelado" && r.error !== "clave") alert("No se pudo quitar. Inténtalo de nuevo.");
   await loadRemote(); rerender();
 });
-$("#in-sheet").textContent = D.modo === "demo" ? "Borrar datos de prueba" : "🗑 Vaciar toda la lista de inscritos";
+$("#in-sheet").textContent = "🗑 Borrar registro ya";
 $("#in-csv").addEventListener("click", () => {
   const url = URL.createObjectURL(new Blob([D.csv(remote)], { type:"text/csv;charset=utf-8" }));
   const a = document.createElement("a"); a.href = url; a.download = "inscritos.csv"; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
 });
 $("#in-sheet").addEventListener("click", async () => {
-  if (D.modo === "demo"){
-    if (confirm("¿Borrar las inscripciones de prueba de este navegador?")){ await D.vaciar(); await loadRemote(); rerender(); }
-    return;
-  }
-  const t = prompt("Esto borra TODOS los inscritos de la lista y no se puede deshacer.\nPara confirmar escribe BORRAR:");
-  if (t === null) return;
-  if (t.trim() !== "BORRAR") return alert("No se borró nada: había que escribir BORRAR.");
+  if (!confirm("¿Borrar a TODOS los inscritos ahora?\nNo se puede deshacer.")) return;
   const r = await D.vaciar();
-  if (r && !r.ok && r.error !== "cancelado" && r.error !== "clave") alert("No se pudo vaciar. Inténtalo de nuevo.");
+  if (r && !r.ok && r.error !== "cancelado" && r.error !== "clave") alert("No se pudo borrar. Inténtalo de nuevo.");
   await loadRemote(); rerender();
 });
 $("#in-reset").addEventListener("click", async () => {
-  const t = prompt("Esto borra TODO: los inscritos, los equipos y los resultados de ajedrez, bingo y llaves.\nNo se puede deshacer. Para confirmar escribe BORRAR:");
-  if (t === null) return;
-  if (t.trim() !== "BORRAR") return alert("No se borró nada: había que escribir BORRAR.");
+  if (!confirm("¿Borrar TODO ahora?\nInscritos, equipos y resultados de ajedrez, bingo y llaves.\nNo se puede deshacer.")) return;
   const r = await D.reiniciarTodo();
   if (r && r.ok === false && r.error !== "cancelado" && r.error !== "clave") return alert("No se pudo borrar todo. Inténtalo de nuevo.");
   if (r && r.ok === false) return;
@@ -616,7 +608,7 @@ $("#bk").addEventListener("click", e => {
 
 /* ---------- Inicio ---------- */
 document.body.classList.remove("locked");
-(async () => { await D.iniciar(); await cargarEstado(); await loadRemote(); $("#in-sheet").textContent = D.modo === "demo" ? "Borrar datos de prueba" : "🗑 Vaciar toda la lista de inscritos"; go(location.hash.slice(1) || "inscritos"); })();
+(async () => { await D.iniciar(); await cargarEstado(); await loadRemote(); $("#in-sheet").textContent = "🗑 Borrar registro ya"; go(location.hash.slice(1) || "inscritos"); })();
 </script>
 </body>
 </html>
