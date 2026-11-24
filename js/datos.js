@@ -83,6 +83,15 @@
     lsSet(DEMO_KEY, []); return { ok: true };
   };
 
+  // Empezar de cero: borra los inscritos y todo lo del panel (equipos, llaves, ajedrez, bingo).
+  D.reiniciarTodo = async function () {
+    const r = await D.vaciar();
+    if (!r || r.ok === false) return r || { ok: false };
+    lsSet(LS_ESTADO, {});
+    const e = await D.guardarEstado({});
+    return e && e.ok === false ? e : { ok: true };
+  };
+
   D.leerEstado = async function () {
     if (D.modo === "nube") { try { const e = await rpc("leer_estado"); return e && typeof e === "object" ? e : {}; } catch (err) { return lsGet(LS_ESTADO, {}); } }
     if (D.modo === "servidor") { const j = await (await fetch("/api/estado", { cache: "no-store" })).json(); return (j && j.estado) || {}; }

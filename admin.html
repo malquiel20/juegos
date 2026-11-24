@@ -190,6 +190,7 @@
     <button class="btn sec" id="in-refresh" style="margin-top:12px">↻ Actualizar</button>
     <button class="link" id="in-csv" style="margin-top:10px;width:100%">⬇ Descargar la lista (Excel / CSV)</button>
     <button class="link" id="in-sheet" style="margin-top:6px;width:100%"></button>
+    <button class="link" id="in-reset" style="margin-top:2px;width:100%;color:var(--err)">⚠ Borrar todo y empezar de cero (inscritos, equipos y resultados)</button>
   </div>
   <div class="tabs" id="in-tabs" style="margin:0"></div>
   <input id="in-q" type="search" placeholder="Buscar por nombre o cédula...">
@@ -202,10 +203,13 @@
   <div class="card"><div class="stat"><div><span class="big" id="eq-n">0</span> <span class="mono" style="font-size:10px;color:var(--muted)">EQUIPOS</span></div><span class="chip mute" id="eq-p"></span></div></div>
   <div class="card">
     <div class="sec-h"><h2>Crear equipo</h2><small id="eq-sel">0 de 2</small></div>
-    <div class="field"><input id="eq-nom" type="text" maxlength="60" autocomplete="off" placeholder="Nombre del equipo (ej. Los Capicúas)"></div>
+    <p class="help" style="margin:0 0 8px"><b>1.</b> Toca a los <b>2 jugadores</b> del equipo</p>
     <input id="eq-q" type="search" placeholder="Buscar jugador...">
-    <div class="list" id="eq-pick" style="margin:10px 0"></div>
+    <div class="list" id="eq-pick" style="margin:10px 0 14px"></div>
+    <div class="field"><label class="t" for="eq-nom"><b>2.</b> Nombre del equipo <span style="color:var(--err)">*</span></label>
+      <input id="eq-nom" type="text" maxlength="60" autocomplete="off" placeholder="Ej. Los Capicúas"></div>
     <button class="btn" id="eq-go" disabled>Crear equipo</button>
+    <p class="note" id="eq-hint"></p>
   </div>
   <div class="list" id="eq-list"></div>
 </section>
@@ -340,6 +344,17 @@ $("#in-sheet").addEventListener("click", async () => {
   if (r && !r.ok && r.error !== "cancelado" && r.error !== "clave") alert("No se pudo vaciar. Inténtalo de nuevo.");
   await loadRemote(); rerender();
 });
+$("#in-reset").addEventListener("click", async () => {
+  const t = prompt("Esto borra TODO: los inscritos, los equipos y los resultados de ajedrez, bingo y llaves.\nNo se puede deshacer. Para confirmar escribe BORRAR:");
+  if (t === null) return;
+  if (t.trim() !== "BORRAR") return alert("No se borró nada: había que escribir BORRAR.");
+  const r = await D.reiniciarTodo();
+  if (r && r.ok === false && r.error !== "cancelado" && r.error !== "clave") return alert("No se pudo borrar todo. Inténtalo de nuevo.");
+  if (r && r.ok === false) return;
+  S = ESTADO_BASE(); eqSel = []; stage = null; chView = null;
+  await loadRemote(); rerender();
+  alert("Listo: todo quedó en cero.");
+});
 document.addEventListener("visibilitychange", async () => { if (!document.hidden){ await loadRemote(); if (D.modo !== "demo") await cargarEstado(); rerender(); } });
 
 /* ---------- EQUIPOS DE DOMINÓ: los crea el organizador ---------- */
@@ -356,11 +371,17 @@ function teamsModel(){
   });
   return { teams, pending: dom.filter(p => !used.has(p.doc)) };
 }
+function botonEquipo(){
+  const nom = clean($("#eq-nom").value);
+  $("#eq-go").disabled = eqSel.length !== 2 || !nom;
+  $("#eq-hint").textContent = eqSel.length !== 2 ? "Elige los 2 jugadores del equipo." : !nom ? "Escribe el nombre del equipo para poder crearlo." : "";
+}
+$("#eq-nom").addEventListener("input", botonEquipo);
 function renderEquipos(){
   const { teams, pending } = teamsModel(), q = norm($("#eq-q").value || "");
   eqSel = eqSel.filter(d => pending.some(p => p.doc === d));
   $("#eq-n").textContent = teams.length; $("#eq-p").textContent = pending.length + " sin equipo";
-  $("#eq-sel").textContent = eqSel.length + " de 2"; $("#eq-go").disabled = eqSel.length !== 2;
+  $("#eq-sel").textContent = eqSel.length + " de 2"; botonEquipo();
   const lista = pending.filter(p => !q || norm(p.nombre + " " + p.doc).includes(q));
   $("#eq-pick").innerHTML = lista.length ? lista.map((p, i) => `<button type="button" class="pt ${eqSel.includes(p.doc) ? "sel" : ""}" data-pick="${esc(p.doc)}"><span class="sd">${eqSel.includes(p.doc) ? "✓" : pad(i+1)}</span><div style="min-width:0;flex:1"><b>${esc(p.nombre)}</b><small>CC ${esc(p.doc)}${p.ficha ? " · Ficha " + esc(p.ficha) : ""}</small></div></button>`).join("")
     : `<div class="empty">${q ? "Sin resultados." : ofGame("Dominó").length ? "Todos los jugadores ya tienen equipo." : "Aún no hay jugadores inscritos en Dominó."}</div>`;
@@ -377,7 +398,7 @@ $("#eq-pick").addEventListener("click", e => {
   renderEquipos();
 });
 $("#eq-go").addEventListener("click", () => {
-  if (eqSel.length !== 2) return;
+  if (eqSel.length !== 2 || !clean($("#eq-nom").value)) return;
   const por = Object.fromEntries(ofGame("Dominó").map(p => [p.doc, p]));
   const [x, y] = eqSel;
   S.teams.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5), name: clean($("#eq-nom").value).slice(0, 60), a: x, b: y, an: por[x].nombre, bn: por[y].nombre });

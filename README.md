@@ -35,7 +35,7 @@ Supabase gratuito **pausa el proyecto tras 1 semana sin usarse**; se reactiva co
 - `inscritos.json`: la lista de inscritos (la base de datos). Se guarda una copia de seguridad `.bak` en cada cambio.
 - `estado.json`: parejas de dominó, llaves, ajedrez y bingo del panel.
 
-Desde el panel puedes **descargar la lista en Excel/CSV**, **quitar** a una persona (✕) o **vaciar** toda la lista (pide escribir `BORRAR`).
+Desde el panel, en **Inscritos**, puedes **descargar la lista en Excel/CSV**, **quitar** a una persona (✕), **vaciar** la lista de inscritos o **borrar todo y empezar de cero** (inscritos, equipos y resultados). Los dos últimos piden escribir `BORRAR`. Úsalos al terminar las pruebas.
 
 ## Reglas de inscripción
 - Una **cédula** no se repite en el mismo juego.
@@ -45,7 +45,7 @@ Desde el panel puedes **descargar la lista en Excel/CSV**, **quitar** a una pers
 
 ## Panel del organizador
 - **Inscritos:** quién se registró en cada juego (con buscador).
-- **Equipos (dominó):** los creas tú en el panel: escribes el **nombre del equipo**, tocas a los **dos jugadores** de la lista de inscritos en Dominó y pulsas **Crear equipo**. Puedes cambiar el nombre (**✎**) o **deshacer** un equipo (**✂**). Los jugadores ya en un equipo salen de la lista.
+- **Equipos (dominó):** los creas tú en el panel: **1)** tocas a los **dos jugadores** de la lista de inscritos en Dominó, **2)** escribes el **nombre del equipo** (obligatorio, para identificarlo) y pulsas **Crear equipo**. Puedes cambiar el nombre (**✎**) o **deshacer** un equipo (**✂**). Los jugadores que ya están en un equipo salen de la lista.
 - **Ajedrez:** sistema suizo. Eliges las rondas, el programa empareja y tú marcas cada resultado (1-0, ½, 0-1). Victoria 1, tablas ½, descanso 1. Desempate Buchholz.
 - **Bingo:** escribes cuántos **cartones** hay. Cada ronda juegan tantos jugadores como cartones: primero los que solo se inscribieron en Bingo (por orden de registro), luego los que ya estaban en otro juego, y al final los que agregues a mano.
 - **Llaves (dominó):** eliminación directa con los equipos creados. Toca un equipo para marcarlo ganador.
