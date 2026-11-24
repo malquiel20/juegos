@@ -3,7 +3,7 @@
 Dos páginas que usan **la misma lista** (una hoja de Google Sheets tuya). Funciona igual que la invitación de la boda.
 
 - **Registro (jugadores):** `https://malquiel20.github.io/juegos/`
-- **Panel del organizador:** `https://malquiel20.github.io/juegos/admin.html` (pide tu clave)
+- **Panel del organizador:** `https://malquiel20.github.io/juegos/admin.html` (entra directo, sin pedir clave)
 
 | Archivo | Para qué sirve |
 |---|---|
@@ -36,8 +36,7 @@ Se crea sola la pestaña **Inscritos** en tu hoja (una fila por persona). Si des
 - **Ajedrez:** sistema suizo. Eliges las rondas, el programa empareja a los que van con puntos parecidos y tú marcas cada resultado (1-0, ½, 0-1). Victoria 1, tablas ½, descanso 1. Desempate Buchholz.
 - **Llaves de dominó:** eliminación directa con las parejas confirmadas. Toca una pareja para marcarla ganadora.
 
-## Privacidad
-- **Público:** lo que está en los archivos de la página (`config.js` con la URL del script y las fichas).
-- **Privado:** la lista de inscritos con sus cédulas. Vive en **tu** hoja y el panel solo la muestra con tu clave (el script no responde la lista sin ella, y no funciona mientras tenga la clave de ejemplo). Usa una clave difícil de adivinar.
-- Los jugadores solo ven el registro. `admin.html` está marcado para que los buscadores no lo muestren.
-- Equipos, llaves y resultados de ajedrez se guardan en el navegador del organizador: usa siempre el mismo dispositivo. Los inscritos no se pierden, están en tu hoja.
+## Privacidad (importante)
+- El panel **no pide clave**: usa la `claveAdmin` que está en `js/config.js`, que es pública en GitHub. Por eso **cualquiera que conozca el enlace del panel (o del script) puede ver la lista de inscritos con sus cédulas**. No compartas el enlace del panel con los jugadores; compárteles solo el del registro.
+- Si más adelante quieres volver a proteger la lista, borra `claveAdmin` de `js/config.js` y pon una clave nueva en `CLAVE_ADMIN` del script (el panel la pedirá).
+- Equipos, llaves y resultados de ajedrez se guardan en el navegador del organizador: usa siempre el mismo dispositivo. Los inscritos no se pierden, están en tu hoja de Google.
