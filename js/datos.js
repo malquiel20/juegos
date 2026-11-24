@@ -26,17 +26,20 @@
     return j;
   }
   let canceloClave = 0;
+  // Borrar y guardar el estado del panel: primero se intenta SIN pedir nada. Si la base de datos no exige clave
+  // (supabase/sin-clave.sql), listo. Si la exige, se pide una sola vez en este dispositivo y se recuerda.
   async function conClave(fn, args, silencioso) {
+    const guardada = localStorage.getItem(CLAVE_KEY) || "";
+    const j0 = await rpc(fn, Object.assign({}, args, { p_clave: guardada }));
+    if (!j0 || j0.ok || j0.error !== "clave") return j0;
+    if (guardada) { try { localStorage.removeItem(CLAVE_KEY); } catch (e) { /* ok */ } }
     for (let intento = 0; intento < 2; intento++) {
-      let c = intento ? "" : (localStorage.getItem(CLAVE_KEY) || "");
-      if (!c) {
-        if (silencioso && Date.now() - canceloClave < 30000) return { ok: false, error: "cancelado" };
-        c = (prompt("Escribe tu clave del organizador.\n(Solo se pide una vez en este dispositivo.)") || "").trim();
-        if (!c) { canceloClave = Date.now(); return { ok: false, error: "cancelado" }; }
-      }
+      if (silencioso && Date.now() - canceloClave < 30000) return { ok: false, error: "cancelado" };
+      const c = (prompt("Escribe tu clave del organizador.\n(Solo se pide una vez en este dispositivo.)") || "").trim();
+      if (!c) { canceloClave = Date.now(); return { ok: false, error: "cancelado" }; }
       const j = await rpc(fn, Object.assign({}, args, { p_clave: c }));
       if (j && j.ok) { try { localStorage.setItem(CLAVE_KEY, c); } catch (e) { /* ok */ } return j; }
-      if (j && j.error === "clave") { try { localStorage.removeItem(CLAVE_KEY); } catch (e) { /* ok */ } alert("La clave no es correcta."); continue; }
+      if (j && j.error === "clave") { alert("La clave no es correcta."); continue; }
       return j;
     }
     return { ok: false, error: "clave" };

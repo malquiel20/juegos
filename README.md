@@ -22,6 +22,8 @@ Preparación (una sola vez, ~5 minutos):
 
 **Clave:** ver la lista de inscritos y registrarse **no piden clave**. La clave solo se pide para **borrar** inscritos o **guardar** cambios del panel (equipos, llaves, ajedrez, bingo), y queda recordada en ese dispositivo. Así ningún jugador puede alterar resultados ni vaciar la lista.
 
+**Quitar la clave (solo Sí/No al borrar):** en Supabase > SQL Editor ejecuta `supabase/sin-clave.sql`. Desde ese momento borrar y guardar solo piden confirmar. Ten en cuenta que entonces cualquiera que conozca la dirección de la base de datos (está en el código público) podría borrar inscritos o cambiar resultados. Para volver a proteger con clave, ejecuta de nuevo `supabase/instalar.sql`.
+
 Supabase gratuito **pausa el proyecto tras 1 semana sin usarse**; se reactiva con un clic desde su página.
 
 ### B) Programa en tu computador (sin cuentas) — todos los dispositivos ven los mismos registros
