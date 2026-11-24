@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Torneo de Juegos · Registro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#fafafa; --card:#fff; --card2:#f4f4f5; --line:#e4e4e7; --ink:#09090b; --muted:#71717a;
+    --hero:#09090b; --hero-ink:#fff; --hero-mute:#d4d4d8;
+    --btn:#09090b; --btn-ink:#fff; --sel:#18181b; --sel-ink:#fff; --sel-mute:#d4d4d8;
+    --ok:#10b981; --err:#b91c1c; --okbg:#ecfdf5; --errbg:#fef2f2;
+    --radius:20px; --shadow:0 4px 20px -2px rgba(0,0,0,.06);
+    --f-head:"Space Grotesk",system-ui,sans-serif; --f-body:Inter,system-ui,sans-serif; --f-mono:"Space Mono",ui-monospace,monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0b0b0c; --card:#141416; --card2:#1c1c1e; --line:#2c2c2e; --ink:#fff; --muted:#8e8e93;
+      --hero:#1c1c1e; --hero-ink:#fff; --hero-mute:#c4c7c8;
+      --btn:#fff; --btn-ink:#0b0b0c; --sel:#fff; --sel-ink:#0b0b0c; --sel-mute:#48484a;
+      --ok:#34d399; --err:#ffb4ab; --okbg:#10291f; --errbg:#2a1412; --shadow:none;
+    }
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 var(--f-body);letter-spacing:-.01em}
+  main{max-width:440px;margin:0 auto;padding:16px 12px 92px}
+  .screen{display:none;flex-direction:column;gap:16px}
+  .screen.on{display:flex}
+  h1,h2,h3{font-family:var(--f-head);margin:0}
+  .mono{font-family:var(--f-mono)}
+  svg{display:block}
+
+  /* Cabecera */
+  .hero{background:var(--hero);color:var(--hero-ink);border-radius:24px;padding:22px 20px;text-align:center;border:1px solid var(--line)}
+  .hero .trio{display:flex;justify-content:center;gap:14px;margin-bottom:12px}
+  .hero .trio span{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);display:grid;place-items:center;font-weight:700;font-size:12px}
+  .hero h1{font-size:22px;text-transform:uppercase;letter-spacing:.02em}
+  .hero p{margin:8px auto 0;max-width:290px;font-size:13px;color:var(--hero-mute)}
+  .hero b{color:#fff}
+  .hero .sub{display:flex;justify-content:space-between;align-items:center;text-align:left}
+  .hero.small{padding:16px 18px;text-align:left}
+  .hero.small h1{font-size:18px}
+  .hero.small p{margin:4px 0 0;max-width:none}
+
+  /* Tarjetas */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
+  .sec-h{display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid var(--line)}
+  .sec-h h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;gap:8px;font-family:var(--f-body);font-weight:700}
+  .sec-h .n{width:20px;height:20px;border-radius:50%;background:var(--btn);color:var(--btn-ink);display:grid;place-items:center;font-size:11px}
+  .sec-h small{color:var(--muted);font-size:11px;font-weight:500}
+
+  /* Juegos */
+  .games{display:flex;flex-direction:column;gap:10px}
+  .game{display:flex;align-items:center;justify-content:space-between;width:100%;padding:13px;border-radius:16px;border:1px solid var(--line);background:var(--card);color:var(--ink);
+        font:inherit;text-align:left;cursor:pointer;transition:all .2s}
+  .game:hover{border-color:var(--muted)}
+  .game .l{display:flex;align-items:center;gap:14px}
+  .game .ic{width:48px;height:48px;border-radius:12px;background:var(--card2);border:1px solid var(--line);display:grid;place-items:center;flex:none}
+  .game b{display:block;font-size:14px}
+  .game small{color:var(--muted);font-size:12px;font-weight:500}
+  .game .ck{width:24px;height:24px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;color:transparent;flex:none}
+  .game[aria-checked="true"]{background:var(--sel);color:var(--sel-ink);border-color:var(--sel)}
+  .game[aria-checked="true"] small{color:var(--sel-mute)}
+  .game[aria-checked="true"] .ic{background:rgba(127,127,127,.18);border-color:rgba(127,127,127,.3)}
+  .game[aria-checked="true"] .ck{background:var(--sel-ink);color:var(--sel);border-color:var(--sel-ink)}
+  .ic svg{width:24px;height:24px}
+  .game .r{display:flex;align-items:center;gap:8px;flex:none}
+  .game .cnt{font:700 11px var(--f-mono);padding:2px 8px;border-radius:99px;background:var(--card2);border:1px solid var(--line);color:var(--muted)}
+  .game .chev{width:18px;height:18px;stroke:var(--muted);fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+  select{width:100%;padding:11px 13px;font:inherit;font-size:14px;color:var(--ink);background:var(--card2);border:1px solid var(--line);border-radius:12px;outline:none}
+  select:focus{border-color:var(--ink)}
+  .pt{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:11px 13px}
+  .pt .sd{width:32px;height:32px;border-radius:10px;background:var(--card2);border:1px solid var(--line);display:grid;place-items:center;font:700 11px var(--f-mono);flex:none}
+  .pt b{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pt small{color:var(--muted);font:400 11px var(--f-mono)}
+  .ball{width:32px;height:32px;border-radius:50%;border:1px solid currentColor;display:grid;place-items:center;font-weight:800;font-size:12px}
+
+  /* Formularios */
+  .field{margin-bottom:14px}
+  label.t{display:block;font-size:12px;font-weight:600;margin-bottom:6px}
+  input[type=text],input[type=search]{width:100%;padding:11px 13px;font:inherit;font-size:14px;color:var(--ink);background:var(--card2);border:1px solid var(--line);border-radius:12px;outline:none}
+  input:focus{border-color:var(--ink);background:var(--card)}
+  input[readonly]{font-weight:700;cursor:not-allowed}
+  .selwrap{position:relative}
+  .dot{position:absolute;right:13px;top:50%;width:8px;height:8px;margin-top:-4px;border-radius:50%;background:var(--muted)}
+  .dot.on{background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 25%,transparent)}
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px 16px;font:inherit;font-family:var(--f-mono);font-weight:700;font-size:13px;
+       text-transform:uppercase;letter-spacing:.04em;color:var(--btn-ink);background:var(--btn);border:1px solid var(--btn);border-radius:14px;cursor:pointer}
+  .btn:active{transform:scale(.98)}
+  .btn:disabled{opacity:.55;cursor:wait}
+  .btn.sec{background:transparent;color:var(--ink);border-color:var(--line)}
+  .btn.sm{padding:9px 12px;font-size:11px;width:auto}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .msg{margin-top:12px;padding:11px 13px;border-radius:12px;font-weight:600;display:none}
+  .msg.ok{display:block;background:var(--okbg);color:var(--ok)} .msg.err{display:block;background:var(--errbg);color:var(--err)}
+  .note{text-align:center;color:var(--muted);font-size:11px;font-weight:500;margin:10px 0 0}
+  footer.f{text-align:center;color:var(--muted);font:700 10px var(--f-mono);letter-spacing:.1em;text-transform:uppercase}
+
+  /* Equipos */
+  .stat{display:flex;justify-content:space-between;align-items:center}
+  .stat .big{font:700 28px var(--f-head)}
+  .chip{display:inline-flex;align-items:center;padding:3px 9px;border-radius:99px;font:700 10px var(--f-mono);text-transform:uppercase;letter-spacing:.05em;background:var(--btn);color:var(--btn-ink)}
+  .chip.mute{background:var(--card2);color:var(--muted);border:1px solid var(--line)}
+  .team{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px}
+  .team .top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+  .team h3{font-size:16px}
+  .team .meta{font:400 10px var(--f-mono);color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+  .duo{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .duo div{background:var(--card2);border-radius:10px;padding:9px}
+  .duo small{display:block;font:400 10px var(--f-mono);color:var(--muted);text-transform:uppercase}
+  .duo b{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .duo i{font:400 10px var(--f-mono);color:var(--muted);font-style:normal}
+  .link{background:none;border:0;color:var(--muted);font:inherit;font-size:11px;cursor:pointer;padding:2px}
+  .link:hover{color:var(--ink)}
+  .list{display:flex;flex-direction:column;gap:10px}
+  .empty{text-align:center;color:var(--muted);padding:26px 10px}
+  .banner{display:flex;gap:10px;background:var(--card2);border-radius:14px;padding:13px}
+  .banner b{font:700 12px var(--f-mono)} .banner p{margin:2px 0 0;font-size:12px;color:var(--muted)}
+
+  /* Sorteo */
+  .shuffle{display:grid;place-items:center;text-align:center;padding:22px 8px;background:var(--card2);border-radius:14px}
+  .spin{width:54px;height:54px;border-radius:50%;border:4px solid var(--line);border-top-color:var(--ink);animation:sp .8s linear infinite;margin-bottom:10px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+
+  /* Llaves */
+  .tabs{display:flex;gap:6px;overflow-x:auto;padding:2px 0}
+  .tabs button{flex:none;padding:7px 13px;border-radius:99px;border:1px solid var(--line);background:var(--card2);color:var(--muted);font:700 10px var(--f-mono);text-transform:uppercase;letter-spacing:.05em;cursor:pointer}
+  .tabs button.on{background:var(--btn);color:var(--btn-ink);border-color:var(--btn)}
+  .final{display:flex;align-items:center;justify-content:space-between;gap:8px;text-align:center;margin-top:12px}
+  .final>div{flex:1;min-width:0}
+  .final .nm{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .vs{font:700 11px var(--f-mono);color:var(--hero-mute)}
+  .final small{color:var(--hero-mute);font-size:11px}
+  .match{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:10px}
+  .match .hd{display:flex;justify-content:space-between;font:400 10px var(--f-mono);color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding:2px 2px 8px}
+  .tm{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:9px;border-radius:12px;border:1px solid transparent;background:var(--card2);color:var(--ink);font:inherit;text-align:left;margin-bottom:6px}
+  .tm:last-child{margin-bottom:0}
+  button.tm{cursor:pointer}
+  .tm .sd{width:30px;height:30px;border-radius:9px;background:var(--card);border:1px solid var(--line);display:grid;place-items:center;font:700 11px var(--f-mono);flex:none}
+  .tm .w{display:flex;align-items:center;gap:10px;min-width:0}
+  .tm b{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tm small{display:block;color:var(--muted);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tm.win{border-color:var(--ink)} .tm.win .sd{background:var(--btn);color:var(--btn-ink)}
+  .tm.lose{opacity:.4} .tm.lose b{text-decoration:line-through}
+  .tm.tbd{opacity:.6;font-style:italic}
+  .tm .tag{font:700 9px var(--f-mono);padding:2px 6px;border-radius:5px;background:var(--btn);color:var(--btn-ink)}
+
+  /* Menú inferior */
+  nav{position:fixed;left:0;right:0;bottom:0;background:color-mix(in srgb,var(--card) 92%,transparent);backdrop-filter:blur(14px);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0)}
+  nav div{max-width:440px;margin:0 auto;display:flex;height:62px}
+  nav button{flex:1;background:none;border:0;border-top:2px solid transparent;color:var(--muted);font:700 10px var(--f-mono);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;text-transform:uppercase;letter-spacing:.03em}
+  nav button.on{color:var(--ink);border-top-color:var(--ink)}
+  nav svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+  .tbl{width:100%;border-collapse:collapse;font-size:13px}
+  .tbl th{font:700 10px var(--f-mono);text-transform:uppercase;letter-spacing:.05em;color:var(--muted);text-align:left;padding:6px 6px;border-bottom:1px solid var(--line)}
+  .tbl td{padding:9px 6px;border-bottom:1px solid var(--line)}
+  .tbl tr:last-child td{border-bottom:0}
+  .tbl .c{text-align:center;font-family:var(--f-mono)} .tbl .nm{font-weight:600}
+  .tbl tr.top td:first-child{font-weight:800}
+  .gm{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px}
+  .gm .pl{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:4px 2px}
+  .gm .pl b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .gm .pl small{font:400 10px var(--f-mono);color:var(--muted);text-transform:uppercase}
+  .res{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
+  .res button{padding:9px 4px;border-radius:10px;border:1px solid var(--line);background:var(--card2);color:var(--ink);font:700 12px var(--f-mono);cursor:pointer}
+  .res button.on{background:var(--btn);color:var(--btn-ink);border-color:var(--btn)}
+  .num{width:80px;padding:8px 10px;font:inherit;color:var(--ink);background:var(--card2);border:1px solid var(--line);border-radius:10px;text-align:center}
+  .help{font-size:12px;color:var(--muted);margin:6px 0 0}
+  .hide{display:none}
+</style>
+</head>
+<body>
+<main style="padding-bottom:24px">
+<section class="screen on" id="s-registro">
+  <header class="hero">
+    <div class="trio" aria-hidden="true">
+      <span title="Ajedrez"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 22H5v-2h14v2M17.5 13.5c-.8 0-1.5.7-1.5 1.5H8v-1.5c0-.8-.7-1.5-1.5-1.5v-1c2.2 0 3-1.8 3-3V7l1-2 2-1 3 1v2c1.7 1.3 2 3.5 2 5.5v1zM10 9a1 1 0 1 0-1-1 1 1 0 0 0 1 1z"/></svg></span>
+      <span title="Dominó"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="3" width="14" height="18" rx="2.5"/><line x1="5" y1="12" x2="19" y2="12"/><circle cx="9.5" cy="7.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="14.5" cy="7.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="12" cy="17" r="1.2" fill="currentColor" stroke="none"/></svg></span>
+      <span title="Bingo">8</span>
+    </div>
+    <h1>Torneo de Juegos</h1>
+    <p>Llena tus datos, elige <b>un solo juego</b> y pulsa <i>Participar</i>.</p>
+  </header>
+
+  <section class="card">
+    <div class="sec-h"><h2>Inscripción</h2><small>Obligatorio</small></div>
+    <form id="f" novalidate>
+      <div class="field"><label class="t" for="nombre">Nombre y apellido</label><input id="nombre" type="text" autocomplete="name" placeholder="Ej. Juan Pérez"></div>
+      <div class="field"><label class="t" for="ficha">Número de ficha</label><select id="ficha"><option value="">Elige tu ficha…</option></select></div>
+      <div class="field"><label class="t" for="doc">Número de cédula</label><input id="doc" type="text" inputmode="numeric" placeholder="Solo números"></div>
+      <div class="field"><label class="t" for="juego">Juego en el que vas a participar</label>
+        <select id="juego"><option value="">Elige un juego…</option><option value="Ajedrez">Ajedrez</option><option value="Dominó">Dominó</option><option value="Bingo">Bingo</option></select></div>
+      <div class="field hide" id="wrap-comp"><label class="t" for="comp">Cédula de tu compañero de dominó</label>
+        <input id="comp" type="text" inputmode="numeric" placeholder="Solo números">
+        <p class="help">Tú eliges tu pareja. Tu compañero también debe registrarse y escribir <b>tu cédula</b> aquí.</p></div>
+      <button class="btn" id="go" type="submit">¡Participar! →</button>
+      <div id="msg" class="msg" role="status" aria-live="polite"></div>
+      <p class="note">Cada cédula solo puede registrarse una vez, en un solo juego.</p>
+    </form>
+  </section>
+  <footer class="f">Torneo de Juegos</footer>
+</section>
+</main>
+
+<script>
+/* ===== CONFIGURACIÓN (ver README.md) =====
+   FORM_URL / ENTRY : tu Google Form (5 preguntas, en este orden)
+   FICHAS           : lista de fichas que se pueden elegir
+   CHECK_URL        : (opcional) Apps Script que revisa si la cédula ya está inscrita */
+const CONFIG = {
+  FORM_URL: "https://docs.google.com/forms/d/e/PEGA_AQUI_EL_ID_DEL_FORM/formResponse",
+  ENTRY: { nombre:"entry.1111111111", ficha:"entry.2222222222", documento:"entry.3333333333", juego:"entry.4444444444", companero:"entry.5555555555" },
+  FICHAS: ["3493748", "3603930", "3174404", "3409199"],
+  CHECK_URL: ""
+};
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+$("#ficha").insertAdjacentHTML("beforeend", CONFIG.FICHAS.map(f => `<option value="${esc(f)}">${esc(f)}</option>`).join(""));
+
+const msg = $("#msg"), btn = $("#go"), KEY = "inscripciones_juegos";
+const saved = () => { try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return []; } };
+const show = (type, text) => { msg.className = "msg " + type; msg.textContent = text; };
+const clean = v => v.trim().replace(/\s+/g, " ");
+const digits = v => v.replace(/\D/g, "");
+
+$("#juego").addEventListener("change", () => $("#wrap-comp").classList.toggle("hide", $("#juego").value !== "Dominó"));
+
+$("#f").addEventListener("submit", async e => {
+  e.preventDefault();
+  const nombre = clean($("#nombre").value), ficha = $("#ficha").value, doc = digits($("#doc").value), juego = $("#juego").value;
+  const comp = juego === "Dominó" ? digits($("#comp").value) : "";
+  if (!nombre.includes(" ")) return show("err", "Escribe nombre y apellido.");
+  if (!ficha) return show("err", "Elige tu número de ficha.");
+  if (doc.length < 5) return show("err", "Revisa tu número de cédula.");
+  if (!juego) return show("err", "Elige el juego en el que vas a participar.");
+  if (juego === "Dominó"){
+    if (comp.length < 5) return show("err", "Escribe la cédula de tu compañero de dominó.");
+    if (comp === doc) return show("err", "Tu compañero no puede ser tú: escribe la cédula de tu pareja.");
+  }
+
+  btn.disabled = true; msg.className = "msg";
+  try {
+    const prev = saved().find(r => r.doc === doc);
+    if (prev) return show("err", `Esta cédula ya está inscrita en ${prev.juego}. Solo se permite un registro por persona.`);
+
+    if (CONFIG.CHECK_URL) {
+      const r = await fetch(`${CONFIG.CHECK_URL}?documento=${encodeURIComponent(doc)}`);
+      const j = await r.json();
+      if (j.existe) return show("err", `Esta cédula ya está inscrita en ${j.juego || "otro juego"}. Solo se permite un registro por persona.`);
+    }
+
+    const body = new FormData();
+    body.append(CONFIG.ENTRY.nombre, nombre);
+    body.append(CONFIG.ENTRY.ficha, ficha);
+    body.append(CONFIG.ENTRY.documento, doc);
+    body.append(CONFIG.ENTRY.juego, juego);
+    body.append(CONFIG.ENTRY.companero, comp);
+    await fetch(CONFIG.FORM_URL, { method:"POST", mode:"no-cors", body });
+
+    const list = saved(); list.push({ doc, juego });
+    try { localStorage.setItem(KEY, JSON.stringify(list)); } catch {}
+    show("ok", `¡Listo ${nombre.split(" ")[0]}! Quedaste inscrito en ${juego}.` + (juego === "Dominó" ? " Tu compañero debe registrarse con tu cédula." : ""));
+    $("#f").reset(); $("#wrap-comp").classList.add("hide");
+  } catch (err) {
+    show("err", "No se pudo enviar. Revisa tu conexión e inténtalo de nuevo.");
+  } finally { btn.disabled = false; }
+});
+</script>
+</body>
+</html>
