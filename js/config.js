@@ -9,6 +9,6 @@
  * =====================================================================
  */
 window.TORNEO = {
-  urlGoogleScript: "",
+  urlGoogleScript: "https://script.google.com/macros/s/AKfycbwaPqRlVXGkBDjxqGmi3xgwJVsm4GJ9FPXhIZj7MfppomvShIZbEUQ7xKk-iAuVs8Ww/exec",
   fichas: ["3493748", "3603930", "3174404", "3409199"],
 };
