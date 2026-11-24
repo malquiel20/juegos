@@ -173,9 +173,22 @@
   .num{width:80px;padding:8px 10px;font:inherit;color:var(--ink);background:var(--card2);border:1px solid var(--line);border-radius:10px;text-align:center}
   .help{font-size:12px;color:var(--muted);margin:6px 0 0}
   .hide{display:none}
+  #login{display:none;max-width:440px;margin:0 auto;padding:16px 12px}
+  body.locked #login{display:block} body.locked main, body.locked nav{display:none}
 </style>
 </head>
 <body>
+
+<!-- Pantalla de clave (solo cuando está conectado a la lista) -->
+<section id="login">
+  <header class="hero small"><h1>Panel del organizador</h1><p>Escribe tu clave para ver los inscritos.</p></header>
+  <form class="card" id="login-f" style="margin-top:16px">
+    <div class="field"><label class="t" for="clave">Clave</label><input id="clave" type="password" autocomplete="current-password" required></div>
+    <button class="btn" type="submit">Entrar</button>
+    <div id="login-msg" class="msg" role="status"></div>
+    <p class="note">Es la clave que pusiste en el script (<code>CLAVE_ADMIN</code>).</p>
+  </form>
+</section>
 <main>
 
 <!-- ===== INSCRITOS ===== -->
@@ -184,7 +197,7 @@
   <div class="card">
     <div class="stat"><div><span class="big" id="in-n">0</span> <span class="mono" style="font-size:10px;color:var(--muted)">INSCRITOS</span></div><span class="chip mute" id="in-src"></span></div>
     <button class="btn sec" id="in-refresh" style="margin-top:12px">↻ Actualizar</button>
-    <button class="link" id="in-sheet" style="margin-top:10px;width:100%">🔗 Conectar con la lista</button>
+    <button class="link" id="in-sheet" style="margin-top:10px;width:100%"></button>
   </div>
   <div class="tabs" id="in-tabs" style="margin:0"></div>
   <input id="in-q" type="search" placeholder="Buscar por nombre o cédula...">
@@ -224,12 +237,14 @@
   <button data-go="llaves"><svg viewBox="0 0 24 24"><path d="M3 5h5v5H3zM3 14h5v5H3zM16 9.5h5v5h-5zM8 7.5h3v9H8M11 12h5"/></svg>Llaves</button>
 </div></nav>
 
+<script src="js/config.js"></script>
 <script>
 /* ===== LISTA DE INSCRITOS =====
-   El enlace de la lista y tu clave NO van en este archivo (es público en GitHub): se escriben una vez
-   con el botón "Conectar con la lista" y quedan guardados solo en este dispositivo. Ver README.md. */
-const API_KEY = "torneo_api";
-const api = () => { try { return JSON.parse(localStorage.getItem(API_KEY)) || null; } catch { return null; } };
+   La URL de la lista está en js/config.js (igual que en la boda). Sin URL funciona en modo de prueba
+   (datos guardados solo en este navegador). Con URL, el panel pide tu clave (CLAVE_ADMIN del script). */
+const URL_SCRIPT = (window.TORNEO || {}).urlGoogleScript || "";
+const DEMO_KEY = "torneo-demo", CLAVE_SESION = "torneo-admin-clave";
+const claveGuardada = () => { try { return sessionStorage.getItem(CLAVE_SESION) || ""; } catch { return ""; } };
 
 const $ = (s, r=document) => r.querySelector(s);
 const $$ = (s, r=document) => [...r.querySelectorAll(s)];
@@ -267,21 +282,25 @@ const LS = "torneo_admin_v1";
 let S = { manual:[], names:{}, mpairs:[], bk:null, chess:null };
 try { S = Object.assign(S, JSON.parse(localStorage.getItem(LS)) || {}); } catch {}
 const save = () => { try { localStorage.setItem(LS, JSON.stringify(S)); } catch {} };
-let remote = [], remoteState = api() ? "loading" : "none";
+let remote = [], remoteState = URL_SCRIPT ? "loading" : "demo";
 
 /* ---------- Inscritos (vienen de la lista interna) ---------- */
-async function loadRemote(){
-  const c = api();
-  if (!c){ remoteState = "none"; return; }
+const normalizar = x => ({ nombre:clean(String(x.nombre)), ficha:String(x.ficha||""), doc:digits(x.doc), juego:canon(x.juego), companero:digits(x.companero) });
+async function loadRemote(clave){
+  if (!URL_SCRIPT){
+    try { remote = (JSON.parse(localStorage.getItem(DEMO_KEY)) || []).map(normalizar); } catch { remote = []; }
+    remoteState = "demo"; return;
+  }
+  clave = clave == null ? claveGuardada() : clave;
   remoteState = "loading";
   try {
-    const r = await fetch(`${c.url}?accion=lista&clave=${encodeURIComponent(c.clave)}`, { cache:"no-store" });
+    const r = await fetch(`${URL_SCRIPT}?accion=lista&clave=${encodeURIComponent(clave)}`, { cache:"no-store" });
     const j = await r.json();
     if (!j.ok) throw new Error(j.error);
-    remote = j.inscritos.map(x => ({ nombre:clean(String(x.nombre)), ficha:String(x.ficha||""), doc:digits(x.doc), juego:canon(x.juego), companero:digits(x.companero) }))
-      .filter(p => p.nombre && p.doc && p.juego);
+    remote = j.inscritos.map(normalizar).filter(p => p.nombre && p.doc && p.juego);
     remoteState = "ok";
-  } catch (e) { remoteState = e.message === "clave" ? "clave" : "fail"; }
+    try { sessionStorage.setItem(CLAVE_SESION, clave); } catch {}
+  } catch (e) { remoteState = /clave/i.test(e.message || "") ? "clave" : "fail"; }
 }
 function people(){
   const seen = new Set(), out = [];
@@ -289,7 +308,7 @@ function people(){
   return out;
 }
 const ofGame = g => people().filter(p => p.juego === g);
-const srcLabel = () => ({none:"Sin conectar", loading:"Cargando…", ok:"Conectado", fail:"Sin conexión", clave:"Clave incorrecta"})[remoteState];
+const srcLabel = () => ({demo:"Modo de prueba", loading:"Cargando…", ok:"Conectado", fail:"Sin conexión", clave:"Clave incorrecta"})[remoteState];
 
 let invGame = "Ajedrez";
 function renderInscritos(){
@@ -298,23 +317,17 @@ function renderInscritos(){
   $("#in-tabs").innerHTML = GAMES.map(g => `<button data-ig="${g}" class="${g===invGame?"on":""}">${g} · ${ofGame(g).length}</button>`).join("");
   const list = ofGame(invGame).filter(p => !q || norm(p.nombre + " " + p.doc).includes(q));
   $("#in-list").innerHTML = list.length ? list.map((p,i) => `<div class="pt"><span class="sd">${pad(i+1)}</span><div style="min-width:0;flex:1"><b>${esc(p.nombre)}</b><small>CC ${esc(p.doc)}${p.ficha ? " · Ficha " + esc(p.ficha) : ""}</small></div></div>`).join("")
-    : `<div class="empty">${q ? "Sin resultados." : remoteState === "none" ? "Pulsa «Conectar con la lista» para ver a los inscritos." : "Aún no hay inscritos en " + invGame + "."}</div>`;
+    : `<div class="empty">${q ? "Sin resultados." : "Aún no hay inscritos en " + invGame + "."}</div>`;
 }
 $("#in-tabs").addEventListener("click", e => { const b = e.target.closest("[data-ig]"); if (b){ invGame = b.dataset.ig; renderInscritos(); } });
 $("#in-q").addEventListener("input", renderInscritos);
 $("#in-refresh").addEventListener("click", async () => { await loadRemote(); rerender(); });
+$("#in-sheet").textContent = URL_SCRIPT ? "Cerrar sesión" : "Borrar datos de prueba";
 $("#in-sheet").addEventListener("click", async () => {
-  const cur = api() || {};
-  const url = prompt("Pega el enlace de la lista (termina en /exec).\nDeja vacío para desconectar.", cur.url || "");
-  if (url === null) return;
-  if (!url.trim()){ try { localStorage.removeItem(API_KEY); } catch {} remote = []; await loadRemote(); return rerender(); }
-  const clave = prompt("Escribe tu clave del organizador (la que pusiste en el programa de la lista):", cur.clave || "");
-  if (clave === null) return;
-  try { localStorage.setItem(API_KEY, JSON.stringify({ url:url.trim(), clave:clave.trim() })); } catch {}
-  await loadRemote(); rerender();
-  if (remoteState !== "ok") alert(remoteState === "clave" ? "La clave no coincide." : "No se pudo conectar. Revisa el enlace.");
+  if (URL_SCRIPT){ try { sessionStorage.removeItem(CLAVE_SESION); } catch {} remote = []; return lock(); }
+  if (confirm("¿Borrar las inscripciones de prueba de este navegador?")){ try { localStorage.removeItem(DEMO_KEY); } catch {} await loadRemote(); rerender(); }
 });
-document.addEventListener("visibilitychange", async () => { if (!document.hidden && api()){ await loadRemote(); rerender(); } });
+document.addEventListener("visibilitychange", async () => { if (!document.hidden && (!URL_SCRIPT || claveGuardada())){ await loadRemote(); rerender(); } });
 
 /* ---------- EQUIPOS DE DOMINÓ: los arman los participantes ---------- */
 function teamsModel(){
@@ -504,8 +517,21 @@ $("#bk").addEventListener("click", e => {
 });
 
 /* ---------- Inicio ---------- */
-go(location.hash.slice(1) || "inscritos");
-loadRemote().then(rerender);
+function lock(){ document.body.classList.add("locked"); $("#clave").value = ""; $("#clave").focus(); }
+async function abrir(){ document.body.classList.remove("locked"); go(location.hash.slice(1) || "inscritos"); }
+$("#login-f").addEventListener("submit", async e => {
+  e.preventDefault();
+  const m = $("#login-msg"); m.className = "msg"; 
+  await loadRemote($("#clave").value);
+  if (remoteState === "ok") return abrir();
+  m.className = "msg err";
+  m.textContent = remoteState === "clave" ? "La clave no es correcta. Revisa mayúsculas y espacios." : "No se pudo conectar. Revisa tu conexión.";
+});
+(async () => {
+  if (!URL_SCRIPT){ await loadRemote(); return abrir(); }
+  if (claveGuardada()){ await loadRemote(); if (remoteState === "ok") return abrir(); }
+  lock();
+})();
 </script>
 </body>
 </html>
