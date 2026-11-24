@@ -209,22 +209,18 @@
 
 <script>
 /* ===== CONFIGURACIÓN (ver README.md) =====
-   FORM_URL / ENTRY : tu Google Form (5 preguntas, en este orden)
-   FICHAS           : lista de fichas que se pueden elegir
-   CHECK_URL        : (opcional) Apps Script que revisa si la cédula ya está inscrita */
+   API_URL : enlace de tu lista (termina en /exec)
+   FICHAS  : lista de fichas que se pueden elegir */
 const CONFIG = {
-  FORM_URL: "https://docs.google.com/forms/d/e/PEGA_AQUI_EL_ID_DEL_FORM/formResponse",
-  ENTRY: { nombre:"entry.1111111111", ficha:"entry.2222222222", documento:"entry.3333333333", juego:"entry.4444444444", companero:"entry.5555555555" },
-  FICHAS: ["3493748", "3603930", "3174404", "3409199"],
-  CHECK_URL: ""
+  API_URL: "PEGA_AQUI_EL_ENLACE_DE_LA_LISTA",
+  FICHAS: ["3493748", "3603930", "3174404", "3409199"]
 };
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 $("#ficha").insertAdjacentHTML("beforeend", CONFIG.FICHAS.map(f => `<option value="${esc(f)}">${esc(f)}</option>`).join(""));
 
-const msg = $("#msg"), btn = $("#go"), KEY = "inscripciones_juegos";
-const saved = () => { try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return []; } };
+const msg = $("#msg"), btn = $("#go");
 const show = (type, text) => { msg.className = "msg " + type; msg.textContent = text; };
 const clean = v => v.trim().replace(/\s+/g, " ");
 const digits = v => v.replace(/\D/g, "");
@@ -243,30 +239,20 @@ $("#f").addEventListener("submit", async e => {
     if (comp.length < 5) return show("err", "Escribe la cédula de tu compañero de dominó.");
     if (comp === doc) return show("err", "Tu compañero no puede ser tú: escribe la cédula de tu pareja.");
   }
+  if (!/^https:\/\/script\.google\.com\//.test(CONFIG.API_URL)) return show("err", "El registro aún no está conectado a la lista. Avisa al organizador.");
 
   btn.disabled = true; msg.className = "msg";
   try {
-    const prev = saved().find(r => r.doc === doc);
-    if (prev) return show("err", `Esta cédula ya está inscrita en ${prev.juego}. Solo se permite un registro por persona.`);
-
-    if (CONFIG.CHECK_URL) {
-      const r = await fetch(`${CONFIG.CHECK_URL}?documento=${encodeURIComponent(doc)}`);
-      const j = await r.json();
-      if (j.existe) return show("err", `Esta cédula ya está inscrita en ${j.juego || "otro juego"}. Solo se permite un registro por persona.`);
+    const r = await fetch(CONFIG.API_URL, { method:"POST", body: JSON.stringify({ nombre, ficha, doc, juego, comp }) });
+    const j = await r.json();
+    if (j.ok){
+      show("ok", `¡Listo ${nombre.split(" ")[0]}! Quedaste inscrito en ${juego}.` + (juego === "Dominó" ? " Tu compañero debe registrarse con tu cédula." : ""));
+      $("#f").reset(); $("#wrap-comp").classList.add("hide");
+    } else if (j.duplicado){
+      show("err", `Esta cédula ya está inscrita en ${j.juego}. Solo se permite un registro por persona.`);
+    } else {
+      show("err", "Revisa los datos e inténtalo de nuevo.");
     }
-
-    const body = new FormData();
-    body.append(CONFIG.ENTRY.nombre, nombre);
-    body.append(CONFIG.ENTRY.ficha, ficha);
-    body.append(CONFIG.ENTRY.documento, doc);
-    body.append(CONFIG.ENTRY.juego, juego);
-    body.append(CONFIG.ENTRY.companero, comp);
-    await fetch(CONFIG.FORM_URL, { method:"POST", mode:"no-cors", body });
-
-    const list = saved(); list.push({ doc, juego });
-    try { localStorage.setItem(KEY, JSON.stringify(list)); } catch {}
-    show("ok", `¡Listo ${nombre.split(" ")[0]}! Quedaste inscrito en ${juego}.` + (juego === "Dominó" ? " Tu compañero debe registrarse con tu cédula." : ""));
-    $("#f").reset(); $("#wrap-comp").classList.add("hide");
   } catch (err) {
     show("err", "No se pudo enviar. Revisa tu conexión e inténtalo de nuevo.");
   } finally { btn.disabled = false; }

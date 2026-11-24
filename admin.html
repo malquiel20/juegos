@@ -184,7 +184,7 @@
   <div class="card">
     <div class="stat"><div><span class="big" id="in-n">0</span> <span class="mono" style="font-size:10px;color:var(--muted)">INSCRITOS</span></div><span class="chip mute" id="in-src"></span></div>
     <button class="btn sec" id="in-refresh" style="margin-top:12px">↻ Actualizar</button>
-    <button class="link" id="in-sheet" style="margin-top:10px;width:100%">🔗 Conectar hoja de inscritos</button>
+    <button class="link" id="in-sheet" style="margin-top:10px;width:100%">🔗 Conectar con la lista</button>
   </div>
   <div class="tabs" id="in-tabs" style="margin:0"></div>
   <input id="in-q" type="search" placeholder="Buscar por nombre o cédula...">
@@ -225,12 +225,11 @@
 </div></nav>
 
 <script>
-/* ===== HOJA DE INSCRITOS =====
-   El enlace CSV de la hoja de respuestas NO va en este archivo (es público en GitHub): se pega una vez
-   con el botón "Conectar hoja" y queda guardado solo en este dispositivo. Ver README.md.
-   Columnas: A fecha, B nombre, C ficha, D cédula, E juego, F compañero de dominó. */
-const SHEET_KEY = "torneo_sheet_url";
-const csvUrl = () => { try { return localStorage.getItem(SHEET_KEY) || ""; } catch { return ""; } };
+/* ===== LISTA DE INSCRITOS =====
+   El enlace de la lista y tu clave NO van en este archivo (es público en GitHub): se escriben una vez
+   con el botón "Conectar con la lista" y quedan guardados solo en este dispositivo. Ver README.md. */
+const API_KEY = "torneo_api";
+const api = () => { try { return JSON.parse(localStorage.getItem(API_KEY)) || null; } catch { return null; } };
 
 const $ = (s, r=document) => r.querySelector(s);
 const $$ = (s, r=document) => [...r.querySelectorAll(s)];
@@ -268,32 +267,21 @@ const LS = "torneo_admin_v1";
 let S = { manual:[], names:{}, mpairs:[], bk:null, chess:null };
 try { S = Object.assign(S, JSON.parse(localStorage.getItem(LS)) || {}); } catch {}
 const save = () => { try { localStorage.setItem(LS, JSON.stringify(S)); } catch {} };
-let remote = [], remoteState = csvUrl() ? "loading" : "none";
+let remote = [], remoteState = api() ? "loading" : "none";
 
-/* ---------- Inscritos (hoja del Form + agregados a mano) ---------- */
-function parseCSV(t){
-  const rows = []; let row = [], cur = "", q = false;
-  for (let i = 0; i < t.length; i++){
-    const c = t[i];
-    if (q){ if (c === '"'){ if (t[i+1] === '"'){ cur += '"'; i++; } else q = false; } else cur += c; }
-    else if (c === '"') q = true;
-    else if (c === ","){ row.push(cur); cur = ""; }
-    else if (c === "\n"){ row.push(cur); rows.push(row); row = []; cur = ""; }
-    else if (c !== "\r") cur += c;
-  }
-  if (cur || row.length){ row.push(cur); rows.push(row); }
-  return rows;
-}
+/* ---------- Inscritos (vienen de la lista interna) ---------- */
 async function loadRemote(){
-  if (!csvUrl()){ remoteState = "none"; return; }
+  const c = api();
+  if (!c){ remoteState = "none"; return; }
   remoteState = "loading";
   try {
-    const r = await fetch(csvUrl(), { cache:"no-store" });
-    if (!r.ok) throw 0;
-    remote = parseCSV(await r.text()).slice(1).filter(x => x[1] && digits(x[3]) && canon(x[4]||""))
-      .map(x => ({ nombre:clean(x[1]), ficha:(x[2]||"").trim(), doc:digits(x[3]), juego:canon(x[4]), companero:digits(x[5]) }));
+    const r = await fetch(`${c.url}?accion=lista&clave=${encodeURIComponent(c.clave)}`, { cache:"no-store" });
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error);
+    remote = j.inscritos.map(x => ({ nombre:clean(String(x.nombre)), ficha:String(x.ficha||""), doc:digits(x.doc), juego:canon(x.juego), companero:digits(x.companero) }))
+      .filter(p => p.nombre && p.doc && p.juego);
     remoteState = "ok";
-  } catch { remoteState = "fail"; }
+  } catch (e) { remoteState = e.message === "clave" ? "clave" : "fail"; }
 }
 function people(){
   const seen = new Set(), out = [];
@@ -301,7 +289,7 @@ function people(){
   return out;
 }
 const ofGame = g => people().filter(p => p.juego === g);
-const srcLabel = () => ({none:"Sin hoja", loading:"Cargando…", ok:"Hoja en línea", fail:"Hoja sin conexión"})[remoteState];
+const srcLabel = () => ({none:"Sin conectar", loading:"Cargando…", ok:"Conectado", fail:"Sin conexión", clave:"Clave incorrecta"})[remoteState];
 
 let invGame = "Ajedrez";
 function renderInscritos(){
@@ -310,17 +298,23 @@ function renderInscritos(){
   $("#in-tabs").innerHTML = GAMES.map(g => `<button data-ig="${g}" class="${g===invGame?"on":""}">${g} · ${ofGame(g).length}</button>`).join("");
   const list = ofGame(invGame).filter(p => !q || norm(p.nombre + " " + p.doc).includes(q));
   $("#in-list").innerHTML = list.length ? list.map((p,i) => `<div class="pt"><span class="sd">${pad(i+1)}</span><div style="min-width:0;flex:1"><b>${esc(p.nombre)}</b><small>CC ${esc(p.doc)}${p.ficha ? " · Ficha " + esc(p.ficha) : ""}</small></div></div>`).join("")
-    : `<div class="empty">${q ? "Sin resultados." : "Aún no hay inscritos en " + invGame + "."}</div>`;
+    : `<div class="empty">${q ? "Sin resultados." : remoteState === "none" ? "Pulsa «Conectar con la lista» para ver a los inscritos." : "Aún no hay inscritos en " + invGame + "."}</div>`;
 }
 $("#in-tabs").addEventListener("click", e => { const b = e.target.closest("[data-ig]"); if (b){ invGame = b.dataset.ig; renderInscritos(); } });
 $("#in-q").addEventListener("input", renderInscritos);
 $("#in-refresh").addEventListener("click", async () => { await loadRemote(); rerender(); });
 $("#in-sheet").addEventListener("click", async () => {
-  const u = prompt("Pega el enlace CSV de la hoja de respuestas (Archivo > Compartir > Publicar en la web > CSV).\nDeja vacío para desconectar.", csvUrl());
-  if (u === null) return;
-  try { u.trim() ? localStorage.setItem(SHEET_KEY, u.trim()) : localStorage.removeItem(SHEET_KEY); } catch {}
+  const cur = api() || {};
+  const url = prompt("Pega el enlace de la lista (termina en /exec).\nDeja vacío para desconectar.", cur.url || "");
+  if (url === null) return;
+  if (!url.trim()){ try { localStorage.removeItem(API_KEY); } catch {} remote = []; await loadRemote(); return rerender(); }
+  const clave = prompt("Escribe tu clave del organizador (la que pusiste en el programa de la lista):", cur.clave || "");
+  if (clave === null) return;
+  try { localStorage.setItem(API_KEY, JSON.stringify({ url:url.trim(), clave:clave.trim() })); } catch {}
   await loadRemote(); rerender();
+  if (remoteState !== "ok") alert(remoteState === "clave" ? "La clave no coincide." : "No se pudo conectar. Revisa el enlace.");
 });
+document.addEventListener("visibilitychange", async () => { if (!document.hidden && api()){ await loadRemote(); rerender(); } });
 
 /* ---------- EQUIPOS DE DOMINÓ: los arman los participantes ---------- */
 function teamsModel(){
