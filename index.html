@@ -172,6 +172,9 @@
   .num{width:80px;padding:8px 10px;font:inherit;color:var(--ink);background:var(--card2);border:1px solid var(--line);border-radius:10px;text-align:center}
   .help{font-size:12px;color:var(--muted);margin:6px 0 0}
   .hide{display:none}
+  fieldset.comp{border:1px solid var(--line);border-radius:14px;padding:14px 14px 14px;margin:0;background:var(--card2)}
+  fieldset.comp legend{font:700 12px var(--f-mono);text-transform:uppercase;letter-spacing:.04em;padding:0 8px}
+  fieldset.comp input,fieldset.comp select{background:var(--card)}
 </style>
 </head>
 <body>
@@ -197,16 +200,19 @@
       <div class="field"><label class="t" for="doc">Número de cédula</label><input id="doc" type="text" inputmode="numeric" placeholder="Solo números"></div>
       <div class="field"><label class="t" for="juego">Juego en el que vas a participar</label>
         <select id="juego"><option value="">Elige un juego…</option><option value="Ajedrez">Ajedrez</option><option value="Dominó">Dominó</option><option value="Bingo">Bingo</option></select></div>
-      <div class="field hide" id="wrap-comp">
-        <label class="t" for="equipo">Nombre del equipo <span style="font-weight:400;color:var(--muted)">(opcional)</span></label>
-        <input id="equipo" type="text" maxlength="60" autocomplete="off" placeholder="Ej. Los Capicúas" style="margin-bottom:12px">
-        <label class="t" for="compn">Nombre y apellido de tu compañero de dominó</label>
-        <input id="compn" type="text" autocomplete="off" placeholder="Ej. Pedro Gómez">
-        <label class="t" for="comp" style="margin-top:12px">Cédula de tu compañero</label>
-        <input id="comp" type="text" inputmode="numeric" placeholder="Solo números">
-        <label class="t" for="compf" style="margin-top:12px">Ficha de tu compañero</label>
-        <select id="compf"><option value="">Elige su ficha…</option></select>
-        <p class="help">Tú eliges tu pareja. Tu compañero también debe registrarse y escribir <b>tu nombre, tu cédula y tu ficha</b> aquí. Si le pones nombre al equipo, mejor que sea el mismo en los dos registros.</p></div>
+      <div class="hide" id="wrap-comp">
+        <div class="field"><label class="t" for="equipo">Nombre del equipo <span style="font-weight:400;color:var(--muted)">(opcional)</span></label>
+          <input id="equipo" type="text" maxlength="60" autocomplete="off" placeholder="Ej. Los Capicúas"></div>
+        <fieldset class="comp">
+          <legend>Datos de tu compañero de dominó</legend>
+          <div class="field"><label class="t" for="compn">Nombre y apellido</label>
+            <input id="compn" type="text" autocomplete="off" placeholder="Ej. Pedro Gómez"></div>
+          <div class="field"><label class="t" for="comp">Cédula</label>
+            <input id="comp" type="text" inputmode="numeric" placeholder="Solo números"></div>
+          <div class="field" style="margin-bottom:0"><label class="t" for="compf">Ficha</label>
+            <select id="compf"><option value="">Elige su ficha…</option></select></div>
+        </fieldset>
+        <p class="help" style="margin:8px 0 14px">Tú eliges tu pareja. Tu compañero también debe registrarse y escribir <b>tu nombre, tu cédula y tu ficha</b>. Si le pones nombre al equipo, mejor que sea el mismo en los dos registros.</p></div>
       <button class="btn" id="go" type="submit">¡Participar! →</button>
       <div id="msg" class="msg" role="status" aria-live="polite"></div>
       <p class="note">Una cédula = un juego (Ajedrez o Dominó). El Bingo se puede sumar.</p>
