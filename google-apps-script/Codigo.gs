@@ -2,9 +2,9 @@
  * =====================================================================
  *  GUARDAR LAS INSCRIPCIONES DEL TORNEO EN GOOGLE SHEETS
  * =====================================================================
- *  1. Crea una hoja de cálculo nueva en Google Sheets.
- *  2. Menú Extensiones > Apps Script. Borra lo que aparece y pega
- *     todo este archivo.
+ *  1. Entra a script.google.com > Nuevo proyecto (o, si prefieres, abre una hoja
+ *     de cálculo nueva > Extensiones > Apps Script). Borra lo que aparece y pega
+ *     todo este archivo. La hoja "Torneo - Inscritos" se crea sola en tu Drive.
  *  3. Cambia la CLAVE_ADMIN de abajo por una clave tuya.
  *  4. Implementar > Nueva implementación > Tipo: Aplicación web.
  *       - Ejecutar como: Yo
@@ -84,11 +84,25 @@ function soloNumeros(v) {
   return String(v == null ? "" : v).replace(/\D/g, "");
 }
 
+// Si el script está pegado dentro de una hoja, usa esa hoja.
+// Si es un proyecto suelto (script.google.com), crea solo la hoja "Torneo - Inscritos" en tu Drive.
+function libro() {
+  var activo = SpreadsheetApp.getActiveSpreadsheet();
+  if (activo) return activo;
+  var props = PropertiesService.getScriptProperties();
+  var id = props.getProperty("LIBRO_ID");
+  if (id) { try { return SpreadsheetApp.openById(id); } catch (e) { /* se vuelve a crear */ } }
+  var nuevo = SpreadsheetApp.create("Torneo - Inscritos");
+  props.setProperty("LIBRO_ID", nuevo.getId());
+  return nuevo;
+}
+
 function hoja() {
-  var libro = SpreadsheetApp.getActiveSpreadsheet();
-  var h = libro.getSheetByName(HOJA_INSCRITOS);
+  var libro_ = libro();
+  var h = libro_.getSheetByName(HOJA_INSCRITOS);
   if (!h) {
-    h = libro.insertSheet(HOJA_INSCRITOS);
+    h = libro_.getSheetByName("Hoja 1") || libro_.getSheetByName("Sheet1") || libro_.insertSheet(HOJA_INSCRITOS);
+    h.setName(HOJA_INSCRITOS);
     h.appendRow(COLUMNAS_INSCRITOS);
     h.setFrozenRows(1);
     h.getRange(1, 1, 1, COLUMNAS_INSCRITOS.length).setFontWeight("bold").setBackground("#e6ecd9");
