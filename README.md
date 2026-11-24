@@ -41,7 +41,7 @@ Desde el panel puedes **descargar la lista en Excel/CSV**, **quitar** a una pers
 - Una **cédula** no se repite en el mismo juego.
 - **Ajedrez y Dominó son excluyentes**: una persona solo puede estar en uno de los dos.
 - El **Bingo se puede sumar** (una vez) aunque la persona ya esté en otro juego.
-- En **Dominó** se piden además el **nombre y apellido** y la **cédula** del compañero. La ficha se elige de una lista (`js/config.js`) y puede repetirse.
+- En **Dominó** se piden además el **nombre y apellido**, la **cédula** y la **ficha** (se elige de la lista) del compañero. La ficha se elige de una lista (`js/config.js`) y puede repetirse.
 
 ## Panel del organizador
 - **Inscritos:** quién se registró en cada juego (con buscador).

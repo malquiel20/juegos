@@ -47,10 +47,10 @@ const texto = (v, max) => String(v == null ? "" : v).trim().replace(/\s+/g, " ")
 function registrar(d) {
   d = d || {};
   const nombre = texto(d.nombre), ficha = texto(d.ficha, 40), doc = soloNumeros(d.doc).slice(0, 20), juego = texto(d.juego, 20);
-  const comp = soloNumeros(d.comp).slice(0, 20), compNombre = texto(d.compNombre);
+  const comp = soloNumeros(d.comp).slice(0, 20), compNombre = texto(d.compNombre), compFicha = texto(d.compFicha, 40);
   if (!nombre.includes(" ") || !ficha || doc.length < 5 || !JUEGOS.includes(juego)) return { ok: false, error: "datos" };
   if (juego === "Dominó" && (comp.length < 5 || comp === doc)) return { ok: false, error: "companero" };
-  if (juego === "Dominó" && !compNombre.includes(" ")) return { ok: false, error: "companero" };
+  if (juego === "Dominó" && (!compNombre.includes(" ") || !compFicha)) return { ok: false, error: "companero" };
   if (inscritos.length >= MAX_INSCRITOS) return { ok: false, error: "lleno" };
 
   // Una cédula no se repite en el mismo juego; Ajedrez y Dominó son excluyentes; el Bingo se puede sumar.
@@ -63,7 +63,7 @@ function registrar(d) {
   const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   inscritos.push({
     id, fecha: new Date().toISOString(), nombre, ficha, doc, juego,
-    companero: juego === "Dominó" ? comp : "", companeroNombre: juego === "Dominó" ? compNombre : "",
+    companero: juego === "Dominó" ? comp : "", companeroNombre: juego === "Dominó" ? compNombre : "", companeroFicha: juego === "Dominó" ? compFicha : "",
   });
   escribir(F_INSCRITOS, inscritos);
   return { ok: true };
@@ -71,8 +71,8 @@ function registrar(d) {
 
 function csv() {
   const celda = v => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
-  const filas = [["Fecha", "Nombre", "Ficha", "Cédula", "Juego", "Cédula del compañero", "Nombre del compañero"]]
-    .concat(inscritos.map(p => [p.fecha, p.nombre, p.ficha, p.doc, p.juego, p.companero, p.companeroNombre]));
+  const filas = [["Fecha", "Nombre", "Ficha", "Cédula", "Juego", "Cédula del compañero", "Nombre del compañero", "Ficha del compañero"]]
+    .concat(inscritos.map(p => [p.fecha, p.nombre, p.ficha, p.doc, p.juego, p.companero, p.companeroNombre, p.companeroFicha]));
   return "﻿" + filas.map(f => f.map(celda).join(";")).join("\r\n");
 }
 

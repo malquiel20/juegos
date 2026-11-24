@@ -47,7 +47,7 @@
     const lista = lsGet(DEMO_KEY, []), propios = lista.filter(x => x.doc === d.doc).map(x => x.juego);
     if (propios.includes(d.juego)) return { ok: false, duplicado: true, juego: d.juego };
     if (d.juego !== "Bingo") { const otro = propios.find(j => j !== "Bingo"); if (otro) return { ok: false, duplicado: true, juego: otro }; }
-    lista.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5), fecha: new Date().toISOString(), nombre: d.nombre, ficha: d.ficha, doc: d.doc, juego: d.juego, companero: d.comp, companeroNombre: d.compNombre });
+    lista.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5), fecha: new Date().toISOString(), nombre: d.nombre, ficha: d.ficha, doc: d.doc, juego: d.juego, companero: d.comp, companeroNombre: d.compNombre, companeroFicha: d.compFicha });
     lsSet(DEMO_KEY, lista);
     return { ok: true };
   }
@@ -60,7 +60,7 @@
   };
 
   D.registrar = async function (d) {   // d: { nombre, ficha, doc, juego, comp, compNombre }
-    if (D.modo === "nube") return rpc("registrar", { p_nombre: d.nombre, p_ficha: d.ficha, p_doc: d.doc, p_juego: d.juego, p_comp: d.comp || "", p_comp_nombre: d.compNombre || "" });
+    if (D.modo === "nube") return rpc("registrar", { p_nombre: d.nombre, p_ficha: d.ficha, p_doc: d.doc, p_juego: d.juego, p_comp: d.comp || "", p_comp_nombre: d.compNombre || "", p_comp_ficha: d.compFicha || "" });
     if (D.modo === "servidor") { const r = await fetch("/api/registro", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(d) }); return r.json(); }
     return registrarDemo(d);
   };
@@ -98,8 +98,8 @@
 
   D.csv = function (lista) {
     const celda = v => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
-    const filas = [["Fecha", "Nombre", "Ficha", "Cédula", "Juego", "Cédula del compañero", "Nombre del compañero"]]
-      .concat(lista.map(p => [p.fecha || "", p.nombre, p.ficha, p.doc, p.juego, p.companero, p.companeroNombre]));
+    const filas = [["Fecha", "Nombre", "Ficha", "Cédula", "Juego", "Cédula del compañero", "Nombre del compañero", "Ficha del compañero"]]
+      .concat(lista.map(p => [p.fecha || "", p.nombre, p.ficha, p.doc, p.juego, p.companero, p.companeroNombre, p.companeroFicha]));
     return "﻿" + filas.map(f => f.map(celda).join(";")).join("\r\n");
   };
 

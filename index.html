@@ -201,7 +201,9 @@
         <input id="compn" type="text" autocomplete="off" placeholder="Ej. Pedro Gómez">
         <label class="t" for="comp" style="margin-top:12px">Cédula de tu compañero</label>
         <input id="comp" type="text" inputmode="numeric" placeholder="Solo números">
-        <p class="help">Tú eliges tu pareja. Tu compañero también debe registrarse y escribir <b>tu nombre y tu cédula</b> aquí.</p></div>
+        <label class="t" for="compf" style="margin-top:12px">Ficha de tu compañero</label>
+        <select id="compf"><option value="">Elige su ficha…</option></select>
+        <p class="help">Tú eliges tu pareja. Tu compañero también debe registrarse y escribir <b>tu nombre, tu cédula y tu ficha</b> aquí.</p></div>
       <button class="btn" id="go" type="submit">¡Participar! →</button>
       <div id="msg" class="msg" role="status" aria-live="polite"></div>
       <p class="note">Una cédula = un juego (Ajedrez o Dominó). El Bingo se puede sumar.</p>
@@ -218,7 +220,9 @@ const CONFIG = window.TORNEO || {};
 const D = window.Datos;
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-$("#ficha").insertAdjacentHTML("beforeend", (CONFIG.fichas || []).map(f => `<option value="${esc(f)}">${esc(f)}</option>`).join(""));
+const opcionesFicha = (CONFIG.fichas || []).map(f => `<option value="${esc(f)}">${esc(f)}</option>`).join("");
+$("#ficha").insertAdjacentHTML("beforeend", opcionesFicha);
+$("#compf").insertAdjacentHTML("beforeend", opcionesFicha);
 // ¿Dónde se guardan los datos? Si no hay base de datos conectada, funciona en modo de prueba.
 const listo = D.iniciar().then(m => { if (m === "demo") $("#demo").classList.remove("hide"); });
 
@@ -233,7 +237,7 @@ const enviar = async d => { await listo; return D.registrar(d); };
 $("#f").addEventListener("submit", async e => {
   e.preventDefault();
   const nombre = clean($("#nombre").value), ficha = $("#ficha").value, doc = digits($("#doc").value), juego = $("#juego").value;
-  const comp = juego === "Dominó" ? digits($("#comp").value) : "", compNombre = juego === "Dominó" ? clean($("#compn").value) : "";
+  const comp = juego === "Dominó" ? digits($("#comp").value) : "", compNombre = juego === "Dominó" ? clean($("#compn").value) : "", compFicha = juego === "Dominó" ? $("#compf").value : "";
   if (!nombre.includes(" ")) return show("err", "Escribe nombre y apellido.");
   if (!ficha) return show("err", "Elige tu número de ficha.");
   if (doc.length < 5) return show("err", "Revisa tu número de cédula.");
@@ -241,13 +245,14 @@ $("#f").addEventListener("submit", async e => {
   if (juego === "Dominó"){
     if (!compNombre.includes(" ")) return show("err", "Escribe el nombre y apellido de tu compañero de dominó.");
     if (compNombre.toLowerCase() === nombre.toLowerCase()) return show("err", "Tu compañero no puede ser tú: escribe el nombre de tu pareja.");
+    if (!compFicha) return show("err", "Elige la ficha de tu compañero.");
     if (comp.length < 5) return show("err", "Escribe la cédula de tu compañero de dominó.");
     if (comp === doc) return show("err", "Tu compañero no puede ser tú: escribe la cédula de tu pareja.");
   }
 
   btn.disabled = true; msg.className = "msg";
   try {
-    const j = await enviar({ nombre, ficha, doc, juego, comp, compNombre });
+    const j = await enviar({ nombre, ficha, doc, juego, comp, compNombre, compFicha });
     if (j.ok){
       show("ok", `¡Listo ${nombre.split(" ")[0]}! Quedaste inscrito en ${juego}.` + (juego === "Dominó" ? " Tu compañero debe registrarse con tu cédula." : ""));
       $("#f").reset(); $("#wrap-comp").classList.add("hide");
