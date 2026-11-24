@@ -124,6 +124,18 @@ function hoja() {
   return h;
 }
 
+// ---------------------------------------------------------------------
+//  Vaciar la lista (SOLO la ejecutas tú, desde el editor del script).
+//  No se puede llamar desde internet. Borra todos los inscritos y deja los títulos.
+//  Uso: en el editor elige "vaciarLista" en el menú de funciones y pulsa Ejecutar.
+// ---------------------------------------------------------------------
+function vaciarLista() {
+  var h = hoja();
+  var n = h.getLastRow();
+  if (n > 1) h.deleteRows(2, n - 1);
+  Logger.log("Lista vaciada: se borraron " + Math.max(0, n - 1) + " inscritos.");
+}
+
 function json(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 }
