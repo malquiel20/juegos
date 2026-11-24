@@ -327,7 +327,7 @@ $("#in-list").addEventListener("click", async e => {
   if (r && !r.ok && r.error !== "cancelado" && r.error !== "clave") alert("No se pudo quitar. Inténtalo de nuevo.");
   await loadRemote(); rerender();
 });
-$("#in-sheet").textContent = "🗑 Borrar registro ya";
+$("#in-sheet").textContent = "🗑 Borrar registros";
 $("#in-csv").addEventListener("click", () => {
   const url = URL.createObjectURL(new Blob([D.csv(remote)], { type:"text/csv;charset=utf-8" }));
   const a = document.createElement("a"); a.href = url; a.download = "inscritos.csv"; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
@@ -608,7 +608,7 @@ $("#bk").addEventListener("click", e => {
 
 /* ---------- Inicio ---------- */
 document.body.classList.remove("locked");
-(async () => { await D.iniciar(); await cargarEstado(); await loadRemote(); $("#in-sheet").textContent = "🗑 Borrar registro ya"; go(location.hash.slice(1) || "inscritos"); })();
+(async () => { await D.iniciar(); await cargarEstado(); await loadRemote(); $("#in-sheet").textContent = "🗑 Borrar registros"; go(location.hash.slice(1) || "inscritos"); })();
 </script>
 </body>
 </html>
