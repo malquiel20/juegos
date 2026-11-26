@@ -173,6 +173,8 @@
   .num{width:80px;padding:8px 10px;font:inherit;color:var(--ink);background:var(--card2);border:1px solid var(--line);border-radius:10px;text-align:center}
   .help{font-size:12px;color:var(--muted);margin:6px 0 0}
   .hide{display:none}
+  button.del{flex:none;display:grid;place-items:center;width:40px;height:40px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--err);cursor:pointer}
+  button.del:active{transform:scale(.94)}
   .btn.danger{background:var(--err);border-color:var(--err);color:#fff;margin-top:10px}
   .btn.danger-sec{background:transparent;border-color:var(--err);color:var(--err);margin-top:8px;font-size:12px}
   @media (prefers-color-scheme: dark){ .btn.danger{color:#3b0a06} }
@@ -228,8 +230,8 @@
 
 <!-- ===== AJEDREZ ===== -->
 <section class="screen" id="s-ajedrez">
-  <header class="hero small"><h1>Ajedrez · Clasificación</h1><p>Sistema suizo: en cada ronda juegan entre sí los que van con puntos parecidos.</p></header>
-  <div id="ch"></div>
+  <header class="hero small"><h1>Ajedrez · Eliminatoria</h1><p>Individual: quien pierde queda eliminado y el ganador pasa a la siguiente ronda. Toca al ganador de cada partida.</p></header>
+  <div id="ajbk"></div>
 </section>
 
 <!-- ===== BINGO ===== -->
@@ -295,7 +297,7 @@ const current = () => location.hash.slice(1) || "inscritos";
 const rerender = () => go(current());
 
 /* ---------- Estado del panel (parejas, llaves, ajedrez, bingo): se guarda en la base de datos ---------- */
-const ESTADO_BASE = () => ({ teams:[], bk:null, chess:null, bingo:null });
+const ESTADO_BASE = () => ({ teams:[], bk:null, ajbk:null, bingo:null });
 let S = ESTADO_BASE();
 async function cargarEstado(){ try { S = Object.assign(ESTADO_BASE(), await D.leerEstado()); } catch (e) { /* se queda con el estado actual */ } }
 let tGuardar = null;
@@ -326,7 +328,7 @@ function renderInscritos(){
   const otrosJ = {}; all.forEach(p => (otrosJ[p.doc] = otrosJ[p.doc] || []).push(p.juego));
   const equipoDe = {}; teamsModel().teams.forEach(t => { equipoDe[t.a.doc] = t.name; equipoDe[t.b.doc] = t.name; });
   const list = ofGame(invGame).filter(p => !q || norm(p.nombre + " " + p.doc).includes(q));
-  $("#in-list").innerHTML = list.length ? list.map((p,i) => `<div class="pt"><span class="sd">${pad(i+1)}</span><div style="min-width:0;flex:1"><b>${esc(p.nombre)}</b><small>CC ${esc(p.doc)}${p.ficha ? " · Ficha " + esc(p.ficha) : ""}${invGame === "Dominó" && equipoDe[p.doc] ? " · Equipo: " + esc(equipoDe[p.doc]) : ""}${otrosJ[p.doc].length > 1 ? " · También en " + esc(otrosJ[p.doc].filter(j => j !== invGame).join(" y ")) : ""}</small></div>${D.modo !== "demo" && p.id ? `<button class="link" data-del="${esc(p.id)}" title="Quitar de la lista">✕</button>` : ""}</div>`).join("")
+  $("#in-list").innerHTML = list.length ? list.map((p,i) => `<div class="pt"><span class="sd">${pad(i+1)}</span><div style="min-width:0;flex:1"><b>${esc(p.nombre)}</b><small>CC ${esc(p.doc)}${p.ficha ? " · Ficha " + esc(p.ficha) : ""}${invGame === "Dominó" && equipoDe[p.doc] ? " · Equipo: " + esc(equipoDe[p.doc]) : ""}${otrosJ[p.doc].length > 1 ? " · También en " + esc(otrosJ[p.doc].filter(j => j !== invGame).join(" y ")) : ""}</small></div>${p.id ? `<button class="del" data-del="${esc(p.id)}" title="Quitar a esta persona de ${esc(invGame)}" aria-label="Quitar a ${esc(p.nombre)}"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6"/></svg></button>` : ""}</div>`).join("")
     : `<div class="empty">${q ? "Sin resultados." : "Aún no hay inscritos en " + invGame + "."}</div>`;
 }
 $("#in-tabs").addEventListener("click", e => { const b = e.target.closest("[data-ig]"); if (b){ invGame = b.dataset.ig; renderInscritos(); } });
@@ -335,9 +337,10 @@ $("#in-refresh").addEventListener("click", async () => { await loadRemote(); rer
 $("#in-list").addEventListener("click", async e => {
   const d = e.target.closest("[data-del]"); if (!d) return;
   const p = remote.find(x => x.id === d.dataset.del);
-  if (!confirm("¿Quitar a " + (p ? p.nombre : "esta persona") + " de la lista?")) return;
+  if (!confirm("¿Quitar a " + (p ? p.nombre : "esta persona") + " de " + invGame + "?\nSolo se quita de este juego; los demás registros no se tocan.")) return;
   const r = await D.borrar(d.dataset.del);
-  if (r && !r.ok && r.error !== "cancelado" && r.error !== "clave") alert("No se pudo quitar. Inténtalo de nuevo.");
+  if (r && !r.ok && r.error !== "cancelado" && r.error !== "clave") return alert("No se pudo quitar. Inténtalo de nuevo.");
+  if (r && r.ok && p && p.juego === "Dominó"){ S.teams = (S.teams || []).filter(t => t.a !== p.doc && t.b !== p.doc); save(); }   // si estaba en un equipo, el equipo se deshace
   await loadRemote(); rerender();
 });
 $("#in-csv").addEventListener("click", () => {
@@ -355,7 +358,7 @@ $("#in-reset").addEventListener("click", async () => {
   const r = await D.reiniciarTodo();
   if (r && r.ok === false && r.error !== "cancelado" && r.error !== "clave") return alert("No se pudo borrar todo. Inténtalo de nuevo.");
   if (r && r.ok === false) return;
-  S = ESTADO_BASE(); eqSel = []; stage = null; chView = null;
+  S = ESTADO_BASE(); eqSel = []; LL_DOM.reset(); LL_AJ.reset();
   await loadRemote(); rerender();
   alert("Listo: todo quedó en cero.");
 });
@@ -412,92 +415,6 @@ $("#eq-list").addEventListener("click", e => {
   const r = e.target.closest("[data-rn]"), s = e.target.closest("[data-sep]");
   if (r){ const t = S.teams.find(x => x.id === r.dataset.rn), n = prompt("Nombre del equipo:", (teamsModel().teams.find(x => x.id === t.id) || {}).name || ""); if (n && n.trim()){ t.name = n.trim().slice(0, 60); save(); renderEquipos(); } }
   if (s && confirm("¿Deshacer este equipo? Los dos jugadores quedan libres.")){ S.teams = S.teams.filter(x => x.id !== s.dataset.sep); save(); renderEquipos(); }
-});
-
-/* ---------- AJEDREZ: clasificación (sistema suizo) ---------- */
-let chView = null;
-function chessStats(){
-  const C = S.chess, st = {};
-  C.players.forEach(p => st[p.doc] = { p, pts:0, w:0, d:0, l:0, opps:[], whites:0, bye:false });
-  C.rounds.forEach(r => {
-    r.games.forEach(g => {
-      st[g.w].whites++; st[g.w].opps.push(g.b); st[g.b].opps.push(g.w);
-      if (g.res === "1-0"){ st[g.w].pts += 1; st[g.w].w++; st[g.b].l++; }
-      else if (g.res === "0-1"){ st[g.b].pts += 1; st[g.b].w++; st[g.w].l++; }
-      else if (g.res === "½"){ st[g.w].pts += .5; st[g.b].pts += .5; st[g.w].d++; st[g.b].d++; }
-    });
-    if (r.bye){ st[r.bye].pts += 1; st[r.bye].w++; st[r.bye].bye = true; }
-  });
-  Object.values(st).forEach(x => x.bu = x.opps.reduce((s, o) => s + st[o].pts, 0));
-  return st;
-}
-function pairRound(){
-  const st = chessStats();
-  let list = shuffle(S.chess.players.map(p => p.doc)).sort((a, b) => st[b].pts - st[a].pts), bye = null;
-  if (list.length % 2){
-    for (let i = list.length - 1; i >= 0; i--) if (!st[list[i]].bye){ bye = list[i]; break; }
-    if (bye === null) bye = list[list.length - 1];
-    list = list.filter(d => d !== bye);
-  }
-  const games = [];
-  while (list.length){
-    const a = list.shift(); let j = list.findIndex(b => !st[a].opps.includes(b)); if (j < 0) j = 0;
-    const b = list.splice(j, 1)[0];
-    const [w, bl] = st[a].whites <= st[b].whites ? [a, b] : [b, a];
-    games.push({ w, b:bl, res:null });
-  }
-  return { games, bye };
-}
-const roundDone = r => r.games.every(g => g.res);
-const fmt = n => Number.isInteger(n) ? String(n) : String(Math.floor(n)) + "½";
-function renderAjedrez(){
-  const el = $("#ch"), C = S.chess, n = ofGame("Ajedrez").length;
-  if (!C){
-    const def = Math.max(3, Math.ceil(Math.log2(Math.max(n, 2)))), maxR = Math.max(1, n - 1);
-    el.innerHTML = n < 2 ? `<div class="card empty">Se necesitan al menos 2 jugadores de Ajedrez (hay ${n}).</div>` :
-      `<div class="card"><div class="stat"><div><span class="big">${n}</span> <span class="mono" style="font-size:10px;color:var(--muted)">JUGADORES</span></div></div>
-       <div class="field" style="margin-top:14px"><label class="t" for="ch-r">Número de rondas</label><input class="num" id="ch-r" type="number" min="1" max="${maxR}" value="${Math.min(def, maxR)}">
-       <p class="help">En cada ronda todos juegan una partida. Con ${n} jugadores se recomiendan ${Math.min(def, maxR)} rondas.</p></div>
-       <button class="btn" id="ch-start">Iniciar torneo · Ronda 1</button>
-       <p class="note">Al iniciar se toma la lista actual de inscritos de Ajedrez.</p></div>`;
-    return;
-  }
-  const st = chessStats(), last = C.rounds.length - 1;
-  if (chView === null || chView > last) chView = last;
-  const rd = C.rounds[chView], canNext = roundDone(C.rounds[last]) && C.rounds.length < C.total, finished = roundDone(C.rounds[last]) && C.rounds.length >= C.total;
-  const rows = Object.values(st).sort((a, b) => b.pts - a.pts || b.bu - a.bu || b.w - a.w || a.p.nombre.localeCompare(b.p.nombre));
-  let h = "";
-  if (finished) h += `<div class="hero" style="text-align:center"><div class="mono" style="font-size:11px;letter-spacing:.08em">🏆 CAMPEÓN</div><div style="font:700 22px var(--f-head);margin-top:6px">${esc(rows[0].p.nombre)}</div><small style="color:var(--hero-mute)">${fmt(rows[0].pts)} puntos</small></div>`;
-  h += `<div class="tabs" style="margin:0">` + C.rounds.map((r, i) => `<button data-cv="${i}" class="${i===chView?"on":""}">Ronda ${i+1}${roundDone(r) ? " ✓" : ""}</button>`).join("") + `</div><div class="list">`;
-  rd.games.forEach((g, gi) => {
-    const nm = d => esc(st[d].p.nombre);
-    h += `<div class="gm"><div class="pl"><span style="min-width:0"><small>Blancas</small><br><b>${nm(g.w)}</b></span><span class="mono" style="color:var(--muted);font-size:11px">Mesa ${pad(gi+1)}</span></div>
-      <div class="pl"><span style="min-width:0"><small>Negras</small><br><b>${nm(g.b)}</b></span></div>
-      <div class="res">${[["1-0","Gana blancas"],["½","Tablas"],["0-1","Gana negras"]].map(([v, t]) => `<button data-g="${chView}:${gi}" data-r="${v}" class="${g.res===v?"on":""}" title="${t}">${v}</button>`).join("")}</div></div>`;
-  });
-  if (rd.bye) h += `<div class="banner"><div><b>Descansa (1 punto)</b><p>${esc(st[rd.bye].p.nombre)}</p></div></div>`;
-  h += `</div>`;
-  if (canNext) h += `<button class="btn" id="ch-next">Generar ronda ${C.rounds.length + 1}</button>`;
-  else if (!finished) h += `<p class="note">Marca todos los resultados para generar la siguiente ronda (${C.rounds.length} de ${C.total}).</p>`;
-  h += `<div class="card"><div class="sec-h"><h2>Clasificación</h2><small>Ronda ${C.rounds.length} de ${C.total}</small></div>
-    <table class="tbl"><thead><tr><th>#</th><th>Jugador</th><th class="c">Pts</th><th class="c">G-E-P</th><th class="c">Bu</th></tr></thead><tbody>` +
-    rows.map((x, i) => `<tr class="${i===0?"top":""}"><td>${i+1}</td><td class="nm">${esc(x.p.nombre)}</td><td class="c"><b>${fmt(x.pts)}</b></td><td class="c">${x.w}-${x.d}-${x.l}</td><td class="c">${fmt(x.bu)}</td></tr>`).join("") +
-    `</tbody></table><p class="help">Pts = puntos (victoria 1, tablas ½, descanso 1). Bu = desempate Buchholz: suma de los puntos de tus rivales.</p></div>
-    <button class="btn sec" id="ch-reset">Reiniciar torneo de ajedrez</button>`;
-  el.innerHTML = h;
-}
-$("#ch").addEventListener("click", e => {
-  const t = e.target;
-  if (t.closest("#ch-start")){
-    const ps = ofGame("Ajedrez"), total = Math.max(1, Math.min(ps.length - 1, parseInt($("#ch-r").value) || 1));
-    S.chess = { players: ps.map(p => ({ doc:p.doc, nombre:p.nombre })), total, rounds:[] };
-    S.chess.rounds.push(pairRound()); chView = null; save(); renderAjedrez();
-  }
-  const cv = t.closest("[data-cv]"); if (cv){ chView = +cv.dataset.cv; renderAjedrez(); }
-  const rb = t.closest("[data-r]");
-  if (rb){ const [ri, gi] = rb.dataset.g.split(":").map(Number), g = S.chess.rounds[ri].games[gi]; g.res = g.res === rb.dataset.r ? null : rb.dataset.r; save(); renderAjedrez(); }
-  if (t.closest("#ch-next")){ S.chess.rounds.push(pairRound()); chView = null; save(); renderAjedrez(); }
-  if (t.closest("#ch-reset") && confirm("¿Borrar todo el torneo de ajedrez?")){ S.chess = null; chView = null; save(); renderAjedrez(); }
 });
 
 /* ---------- BINGO: rondas por prioridad ---------- */
@@ -563,60 +480,73 @@ $("#bg").addEventListener("click", e => {
   if (t.closest("#bg-reset") && confirm("¿Borrar los cartones, los jugadores agregados y las rondas jugadas del bingo?")){ S.bingo = null; save(); renderBingo(); }
 });
 
-/* ---------- LLAVES DE DOMINÓ ---------- */
-let stage = null;
+/* ---------- LLAVES (eliminación directa): Dominó por equipos y Ajedrez individual ---------- */
 const roundName = (r, total) => { const left = total - r; return left === 1 ? "Final" : left === 2 ? "Semifinal" : left === 3 ? "Cuartos" : left === 4 ? "Octavos" : left === 5 ? "Dieciseisavos" : "Ronda " + (r+1); };
-function bracketModel(){
-  const T = S.bk.teams, n = T.length; let size = 2; while (size < n) size *= 2;
-  const seeds = Array.from({length:size}, (_, i) => T[i] || null), rounds = Math.log2(size), byId = Object.fromEntries(T.map(p => [p.id, p]));
-  const parts = (r, m) => r === 0 ? [seeds[m], seeds[size-1-m]] : [winner(r-1, 2*m), winner(r-1, 2*m+1)];
-  function winner(r, m){
-    const [a, b] = parts(r, m);
-    if (r === 0 && a && !b) return a; if (r === 0 && b && !a) return b;
-    const w = byId[S.bk.wins[r+"-"+m]]; return w && (w === a || w === b) ? w : null;
+function crearLlaves(c){
+  let stage = null;
+  const st = () => S[c.key];
+  const subDe = t => t.sub != null ? t.sub : (t.a ? `${t.a.nombre} & ${t.b.nombre}` : "");
+  function model(){
+    const T = st().teams, n = T.length; let size = 2; while (size < n) size *= 2;
+    const seeds = Array.from({length:size}, (_, i) => T[i] || null), rounds = Math.log2(size), byId = Object.fromEntries(T.map(p => [p.id, p]));
+    const parts = (r, m) => r === 0 ? [seeds[m], seeds[size-1-m]] : [winner(r-1, 2*m), winner(r-1, 2*m+1)];
+    function winner(r, m){
+      const [a, b] = parts(r, m);
+      if (r === 0 && a && !b) return a; if (r === 0 && b && !a) return b;
+      const w = byId[st().wins[r+"-"+m]]; return w && (w === a || w === b) ? w : null;
+    }
+    return { size, rounds, parts, winner };
   }
-  return { size, rounds, parts, winner };
+  function render(){
+    const el = $(c.el), lista = c.candidatos();
+    if (!st()){
+      el.innerHTML = lista.length < 2 ? `<div class="card empty">Se necesitan al menos 2 ${c.plural} (hay ${lista.length}).<br><br><button class="btn sm" data-go="${c.irA}" style="margin:auto">${c.irTexto}</button></div>` :
+        `<div class="card"><div class="stat"><div><span class="big">${lista.length}</span> <span class="mono" style="font-size:10px;color:var(--muted)">${c.plural.toUpperCase()}</span></div></div>
+         <button class="btn" data-gen="1" style="margin-top:14px">Generar llaves</button><p class="note">${c.nota}</p></div>`;
+      return;
+    }
+    const M = model(), T = st().teams;
+    if (stage === null || stage >= M.rounds){
+      stage = 0; for (let r = 0; r < M.rounds; r++){ let open = false; for (let m = 0; m < M.size/2**(r+1); m++){ const [a,b] = M.parts(r,m); if (a && b && !M.winner(r,m)) open = true; } stage = r; if (open) break; }
+    }
+    const champ = M.winner(M.rounds-1, 0), [fa, fb] = M.parts(M.rounds-1, 0), seedOf = p => T.indexOf(p) + 1;
+    const fin = p => p ? `<div><div class="nm">${esc(p.name)}</div><small>Sembrado ${seedOf(p)}</small></div>` : `<div><div class="nm" style="opacity:.6">Por definir</div><small>Ganador previo</small></div>`;
+    let h = `<div class="hero" style="text-align:left"><div class="mono" style="font-size:11px;letter-spacing:.08em;text-transform:uppercase">🏆 Gran final</div><div class="final">${fin(fa)}<span class="vs">VS</span>${fin(fb)}</div>
+      ${champ ? `<div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.18);text-align:center"><small style="color:var(--hero-mute)">${c.campeon}</small><div style="font:700 20px var(--f-head)">${esc(champ.name)}</div><small style="color:var(--hero-mute)">${esc(subDe(champ))}</small></div>` : ""}</div>`;
+    h += `<div class="tabs" style="margin:14px 0">` + Array.from({length:M.rounds}, (_, r) => `<button data-stage="${r}" class="${r===stage?"on":""}">${roundName(r,M.rounds)}</button>`).join("") + `</div><div class="list">`;
+    for (let m = 0; m < M.size / 2**(stage+1); m++){
+      const [a, b] = M.parts(stage, m), w = M.winner(stage, m), bye = stage === 0 && (!a || !b);
+      const state = bye ? "Pase directo" : w ? "Finalizado" : a && b ? "Por jugar" : "Por definir";
+      const row = t => {
+        if (!t) return `<div class="tm tbd"><span class="w"><span class="sd">–</span><span><b>${bye ? "Libre (bye)" : "Por definir"}</b></span></span></div>`;
+        const cls = w ? (w === t ? "win" : "lose") : "", tag = w === t ? `<span class="tag">AVANZA</span>` : (w ? `<span class="tag" style="background:var(--card);color:var(--muted);border:1px solid var(--line)">ELIMINADO</span>` : "");
+        const inner = `<span class="w"><span class="sd">${pad(seedOf(t))}</span><span><b>${esc(t.name)}</b><small>${esc(subDe(t))}</small></span></span>${tag}`;
+        return a && b && !bye ? `<button class="tm ${cls}" data-win="${stage}-${m}" data-id="${esc(t.id)}">${inner}</button>` : `<div class="tm ${cls}">${inner}</div>`;
+      };
+      h += `<div class="match"><div class="hd"><span>${c.mesa} ${pad(m+1)} · ${state}</span><span>Llave ${String.fromCharCode(65+stage)}-${m+1}</span></div>${row(a)}${row(b)}</div>`;
+    }
+    el.innerHTML = h + `</div><p class="note">${c.ayuda}</p><button class="btn sec" data-reset="1" style="margin-top:6px">Borrar llaves y empezar de nuevo</button>`;
+  }
+  $(c.el).addEventListener("click", e => {
+    const t = e.target.closest("[data-stage]"), w = e.target.closest("[data-win]");
+    if (e.target.closest("[data-gen]")){
+      const T = shuffle(c.candidatos());
+      S[c.key] = { teams:T, wins:{} }; stage = null; save(); render();
+    }
+    if (t){ stage = +t.dataset.stage; render(); }
+    if (w){ const k = w.dataset.win, w2 = st().wins; if (w2[k] === w.dataset.id) delete w2[k]; else w2[k] = w.dataset.id; save(); render(); }
+    if (e.target.closest("[data-reset]") && confirm("¿Borrar las llaves y todos los resultados?")){ S[c.key] = null; stage = null; save(); render(); }
+  });
+  return { render, reset(){ stage = null; } };
 }
-function renderLlaves(){
-  const el = $("#bk"), { teams } = teamsModel();
-  if (!S.bk){
-    el.innerHTML = teams.length < 2 ? `<div class="card empty">Se necesitan al menos 2 equipos creados (hay ${teams.length}).<br><br><button class="btn sm" data-go="equipos" style="margin:auto">Ver equipos</button></div>` :
-      `<div class="card"><div class="stat"><div><span class="big">${teams.length}</span> <span class="mono" style="font-size:10px;color:var(--muted)">EQUIPOS</span></div></div>
-       <button class="btn" id="bk-gen" style="margin-top:14px">Generar llaves</button><p class="note">Los equipos se acomodan en el cuadro al azar.</p></div>`;
-    return;
-  }
-  const M = bracketModel(), T = S.bk.teams;
-  if (stage === null || stage >= M.rounds){
-    stage = 0; for (let r = 0; r < M.rounds; r++){ let open = false; for (let m = 0; m < M.size/2**(r+1); m++){ const [a,b] = M.parts(r,m); if (a && b && !M.winner(r,m)) open = true; } stage = r; if (open) break; }
-  }
-  const champ = M.winner(M.rounds-1, 0), [fa, fb] = M.parts(M.rounds-1, 0), seedOf = p => T.indexOf(p) + 1;
-  const fin = p => p ? `<div><div class="nm">${esc(p.name)}</div><small>Sembrado ${seedOf(p)}</small></div>` : `<div><div class="nm" style="opacity:.6">Por definir</div><small>Ganador previo</small></div>`;
-  let h = `<div class="hero" style="text-align:left"><div class="mono" style="font-size:11px;letter-spacing:.08em;text-transform:uppercase">🏆 Gran final</div><div class="final">${fin(fa)}<span class="vs">VS</span>${fin(fb)}</div>
-    ${champ ? `<div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.18);text-align:center"><small style="color:var(--hero-mute)">PAREJA CAMPEONA</small><div style="font:700 20px var(--f-head)">${esc(champ.name)}</div><small style="color:var(--hero-mute)">${esc(champ.a.nombre)} &amp; ${esc(champ.b.nombre)}</small></div>` : ""}</div>`;
-  h += `<div class="tabs" style="margin:14px 0">` + Array.from({length:M.rounds}, (_, r) => `<button data-stage="${r}" class="${r===stage?"on":""}">${roundName(r,M.rounds)}</button>`).join("") + `</div><div class="list">`;
-  for (let m = 0; m < M.size / 2**(stage+1); m++){
-    const [a, b] = M.parts(stage, m), w = M.winner(stage, m), bye = stage === 0 && (!a || !b);
-    const state = bye ? "Pase directo" : w ? "Finalizado" : a && b ? "Por jugar" : "Por definir";
-    const row = t => {
-      if (!t) return `<div class="tm tbd"><span class="w"><span class="sd">–</span><span><b>${bye ? "Libre (bye)" : "Por definir"}</b></span></span></div>`;
-      const cls = w ? (w === t ? "win" : "lose") : "", tag = w === t ? `<span class="tag">AVANZA</span>` : "";
-      const inner = `<span class="w"><span class="sd">${pad(seedOf(t))}</span><span><b>${esc(t.name)}</b><small>${esc(t.a.nombre)} &amp; ${esc(t.b.nombre)}</small></span></span>${tag}`;
-      return a && b && !bye ? `<button class="tm ${cls}" data-win="${stage}-${m}" data-id="${esc(t.id)}">${inner}</button>` : `<div class="tm ${cls}">${inner}</div>`;
-    };
-    h += `<div class="match"><div class="hd"><span>Mesa ${pad(m+1)} · ${state}</span><span>Llave ${String.fromCharCode(65+stage)}-${m+1}</span></div>${row(a)}${row(b)}</div>`;
-  }
-  el.innerHTML = h + `</div><button class="btn sec" id="bk-reset" style="margin-top:14px">Borrar llaves y empezar de nuevo</button>`;
-}
-$("#bk").addEventListener("click", e => {
-  const t = e.target.closest("[data-stage]"), w = e.target.closest("[data-win]");
-  if (e.target.closest("#bk-gen")){
-    const T = shuffle(teamsModel().teams).map(x => ({ id:x.key, name:x.name, a:{nombre:x.a.nombre}, b:{nombre:x.b.nombre} }));
-    S.bk = { teams:T, wins:{} }; stage = null; save(); renderLlaves();
-  }
-  if (t){ stage = +t.dataset.stage; renderLlaves(); }
-  if (w){ const k = w.dataset.win, w2 = S.bk.wins; if (w2[k] === w.dataset.id) delete w2[k]; else w2[k] = w.dataset.id; save(); renderLlaves(); }
-  if (e.target.closest("#bk-reset") && confirm("¿Borrar las llaves y todos los resultados?")){ S.bk = null; stage = null; save(); renderLlaves(); }
-});
+const LL_DOM = crearLlaves({ el:"#bk", key:"bk", plural:"equipos", campeon:"PAREJA CAMPEONA", mesa:"Mesa", irA:"equipos", irTexto:"Ver equipos",
+  nota:"Los equipos se acomodan en el cuadro al azar.", ayuda:"Toca un equipo para marcarlo ganador. Quien pierde queda eliminado.",
+  candidatos: () => teamsModel().teams.map(x => ({ id:x.key, name:x.name, sub:`${x.a.nombre} & ${x.b.nombre}` })) });
+const LL_AJ = crearLlaves({ el:"#ajbk", key:"ajbk", plural:"jugadores", campeon:"CAMPEÓN", mesa:"Tablero", irA:"inscritos", irTexto:"Ver inscritos",
+  nota:"Los jugadores se acomodan en el cuadro al azar. Quien pierde queda eliminado y el ganador pasa a la siguiente ronda.",
+  ayuda:"Toca al ganador de cada partida. Quien pierde queda eliminado. Si hay tablas, jueguen un desempate y marca al ganador.",
+  candidatos: () => ofGame("Ajedrez").map(p => ({ id:p.doc, name:p.nombre, sub:p.ficha ? "Ficha " + p.ficha : "" })) });
+const renderLlaves = LL_DOM.render, renderAjedrez = LL_AJ.render;
 
 /* ---------- Link y QR para los jugadores (solo con el programa del computador) ---------- */
 async function mostrarLink(){

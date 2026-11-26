@@ -41,7 +41,7 @@ Mientras el computador y la ventana negra estén abiertos, el registro funciona 
 - `inscritos.json`: la lista de inscritos (la base de datos). Se guarda una copia de seguridad `.bak` en cada cambio.
 - `estado.json`: parejas de dominó, llaves, ajedrez y bingo del panel.
 
-Desde el panel, en **Inscritos**, puedes **descargar la lista en Excel/CSV**, **quitar** a una persona (✕), **Borrar registros** (botón rojo con ícono de basura; borra todos los inscritos) o **Borrar todo** (inscritos, equipos y resultados). Los dos piden una confirmación Sí/No. Úsalos al terminar las pruebas.
+Desde el panel, en **Inscritos**, puedes **descargar la lista en Excel/CSV**, **quitar** a una persona concreta (botón 🗑 al lado de cada nombre; solo se quita de ese juego), **Borrar registros** (botón rojo con ícono de basura; borra todos los inscritos) o **Borrar todo** (inscritos, equipos y resultados). Los dos piden una confirmación Sí/No. Úsalos al terminar las pruebas.
 
 ## Reglas de inscripción
 - Una **cédula** no se repite en el mismo juego.
@@ -52,7 +52,7 @@ Desde el panel, en **Inscritos**, puedes **descargar la lista en Excel/CSV**, **
 ## Panel del organizador
 - **Inscritos:** quién se registró en cada juego (con buscador).
 - **Equipos (dominó):** los creas tú en el panel: **1)** tocas a los **dos jugadores** de la lista de inscritos en Dominó, **2)** escribes el **nombre del equipo** (obligatorio, para identificarlo) y pulsas **Crear equipo**. Puedes cambiar el nombre (**✎**) o **deshacer** un equipo (**✂**). Los jugadores que ya están en un equipo salen de la lista.
-- **Ajedrez:** sistema suizo. Eliges las rondas, el programa empareja y tú marcas cada resultado (1-0, ½, 0-1). Victoria 1, tablas ½, descanso 1. Desempate Buchholz.
+- **Ajedrez (eliminatoria individual):** igual que las llaves de Dominó, pero cada jugador va solo. Pulsas **Generar llaves** y los inscritos se acomodan al azar en el cuadro (si no son 4, 8, 16… algunos pasan directo). En cada partida tocas al **ganador**: quien pierde queda **eliminado** y el ganador pasa a la siguiente ronda, hasta el **campeón**. Si hay tablas, juegan un desempate y marcas al ganador. No se usan puntos.
 - **Bingo:** escribes cuántos **cartones** hay. Cada ronda juegan tantos jugadores como cartones: primero los que solo se inscribieron en Bingo (por orden de registro), luego los que ya estaban en otro juego, y al final los que agregues a mano.
 - **Llaves (dominó):** eliminación directa con los equipos creados. Toca un equipo para marcarlo ganador.
 
