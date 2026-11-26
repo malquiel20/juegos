@@ -460,24 +460,24 @@ async function descargarExcel(){
   const N = orden.length, fichas = fichasDe(todos), lista = ["Todas", ...fichas.map(String)];
   const wb = XLSX.utils.book_new();
 
-  // 0) "Elegir ficha": una lista desplegable (celda B1) y debajo salen solo las personas de esa ficha.
-  const q = "'Elegir ficha'!$B$1", ultimo = N + 1;
+  // 0) UNA sola hoja interactiva: por defecto salen TODOS (ordenados por ficha) y las listas desplegables
+  //    de las celdas B1 (ficha) y B2 (juego) los van filtrando.
+  const qF = "'Por ficha'!$B$1", qJ = "'Por ficha'!$B$2", ultimo = N + 1, primera = 7;
   const consulta = {};
   const put = (ref, v, f) => { consulta[ref] = f ? { t: typeof v === "number" ? "n" : "s", v, f } : { t: typeof v === "number" ? "n" : "s", v }; };
-  put("A1", "Elige la ficha:"); put("B1", "Todas");
-  put("A2", "Personas con esa ficha:"); put("B2", N, `IF(${q}="Todas",COUNTA(Datos!$A$2:$A$${ultimo}),SUMPRODUCT(--(Datos!$A$2:$A$${ultimo}&""=${q}&"")))`);
-  put("A3", "Toca la celda B1 y elige una ficha de la lista (o 'Todas').");
-  ["Ficha", "Juego", "Nombre y apellido", "Cédula"].forEach((t, c) => put(String.fromCharCode(65 + c) + "5", t));
-  const colsDatos = ["A", "B", "C", "D"];   // ficha, juego, nombre, cédula en la hoja oculta "Datos"
+  put("A1", "Ficha:"); put("B1", "Todas");
+  put("A2", "Juego:"); put("B2", "Todos");
+  put("A3", "Personas que se muestran:"); put("B3", N, `COUNT(Datos!$F$2:$F$${ultimo})`);
+  put("A4", "Toca B1 (ficha) o B2 (juego) y elige de la lista. Con Todas y Todos salen todos los inscritos.");
+  ["Ficha", "Juego", "Nombre y apellido", "Cédula", "Fecha de registro"].forEach((t, c) => put(String.fromCharCode(65 + c) + "6", t));
+  const colsDatos = ["A", "B", "C", "D", "E"];   // ficha, juego, nombre, cédula, fecha en la hoja oculta "Datos"
   orden.forEach((p, i) => {
-    const fila = 6 + i, valores = [String(p.ficha), p.juego, p.nombre, String(p.doc)];
-    colsDatos.forEach((cd, c) => put(String.fromCharCode(65 + c) + fila, valores[c], `IFERROR(INDEX(Datos!$${cd}$2:$${cd}$${ultimo},MATCH(ROWS($A$6:$A${fila}),Datos!$E$2:$E$${ultimo},0)),"")`));
+    const fila = primera + i, valores = [String(p.ficha), p.juego, p.nombre, String(p.doc), fecha(p)];
+    colsDatos.forEach((cd, c) => put(String.fromCharCode(65 + c) + fila, valores[c], `IFERROR(INDEX(Datos!$${cd}$2:$${cd}$${ultimo},MATCH(ROWS($A$${primera}:$A${fila}),Datos!$F$2:$F$${ultimo},0)),"")`));
   });
-  const wsC = consulta; wsC["!ref"] = "A1:D" + (5 + N); wsC["!cols"] = [{ wch:24 }, { wch:12 }, { wch:36 }, { wch:14 }];
-  XLSX.utils.book_append_sheet(wb, wsC, "Elegir ficha");
+  consulta["!ref"] = "A1:E" + (primera - 1 + N); consulta["!cols"] = [{ wch:26 }, { wch:12 }, { wch:36 }, { wch:14 }, { wch:18 }];
+  XLSX.utils.book_append_sheet(wb, consulta, "Por ficha");
 
-  // 1) Todos, ordenados por ficha. Ficha en la columna A: ahí se filtra con las flechitas del encabezado.
-  XLSX.utils.book_append_sheet(wb, hoja([["Ficha", "Juego", "Nombre y apellido", "Cédula", "Fecha de registro"]].concat(orden.map(p => [String(p.ficha), p.juego, p.nombre, String(p.doc), fecha(p)])), [12, 10, 36, 14, 18], true), "Por ficha");
   // 2) Una hoja por juego, también ordenada por ficha y con filtro
   GAMES.forEach(g => {
     const l = todos.filter(p => p.juego === g).sort(cmp), dom = g === "Dominó";
@@ -489,15 +489,18 @@ async function descargarExcel(){
   fichas.forEach(f => { const c = GAMES.map(g => todos.filter(p => p.juego === g && p.ficha === f).length); filas.push([String(f), ...c, c.reduce((s, n) => s + n, 0)]); });
   const tot = GAMES.map(g => todos.filter(p => p.juego === g).length); filas.push(["Total", ...tot, tot.reduce((s, n) => s + n, 0)]);
   XLSX.utils.book_append_sheet(wb, hoja(filas, [12, 10, 10, 10, 10], false), "Resumen");
-  // 4) "Datos" (oculta): alimenta la hoja "Elegir ficha"
-  const datos = { "!ref": "A1:G" + Math.max(ultimo, lista.length + 1) };
-  ["Ficha", "Juego", "Nombre", "Cédula", "Fila"].forEach((t, c) => { datos[String.fromCharCode(65 + c) + "1"] = { t:"s", v:t }; }); datos.G1 = { t:"s", v:"Lista" };
+  // 4) "Datos" (oculta): alimenta la hoja "Por ficha". La columna F numera a quienes cumplen los dos filtros.
+  const juegos2 = ["Todos", ...GAMES];
+  const datos = { "!ref": "A1:I" + Math.max(ultimo, lista.length + 1, juegos2.length + 1) };
+  ["Ficha", "Juego", "Nombre", "Cédula", "Fecha", "Fila"].forEach((t, c) => { datos[String.fromCharCode(65 + c) + "1"] = { t:"s", v:t }; });
+  datos.H1 = { t:"s", v:"Lista de fichas" }; datos.I1 = { t:"s", v:"Lista de juegos" };
   orden.forEach((p, i) => {
     const r = i + 2;
-    datos["A" + r] = { t:"s", v:String(p.ficha) }; datos["B" + r] = { t:"s", v:p.juego }; datos["C" + r] = { t:"s", v:p.nombre }; datos["D" + r] = { t:"s", v:String(p.doc) };
-    datos["E" + r] = { t:"n", v:i + 1, f:`IF(OR(${q}="Todas",A${r}&""=${q}&""),MAX(E$1:E${r - 1})+1,"")` };
+    datos["A" + r] = { t:"s", v:String(p.ficha) }; datos["B" + r] = { t:"s", v:p.juego }; datos["C" + r] = { t:"s", v:p.nombre }; datos["D" + r] = { t:"s", v:String(p.doc) }; datos["E" + r] = { t:"s", v:fecha(p) };
+    datos["F" + r] = { t:"n", v:i + 1, f:`IF(AND(OR(${qF}="Todas",A${r}&""=${qF}&""),OR(${qJ}="Todos",B${r}=${qJ})),MAX(F$1:F${r - 1})+1,"")` };
   });
-  lista.forEach((v, i) => { datos["G" + (i + 2)] = { t:"s", v }; });
+  lista.forEach((v, i) => { datos["H" + (i + 2)] = { t:"s", v }; });
+  juegos2.forEach((v, i) => { datos["I" + (i + 2)] = { t:"s", v }; });
   XLSX.utils.book_append_sheet(wb, datos, "Datos");
   wb.Workbook = { CalcPr: { fullCalcOnLoad: true }, Sheets: wb.SheetNames.map(n => ({ Hidden: n === "Datos" ? 1 : 0 })) };
 
@@ -507,8 +510,11 @@ async function descargarExcel(){
     if (!window.JSZip) throw new Error("sin zip");
     const zip = await JSZip.loadAsync(bytes), ruta = "xl/worksheets/sheet1.xml";
     let xml = await zip.file(ruta).async("string");
-    const origen = lista.join(",").length <= 240 ? `&quot;${lista.map(v => v.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;")).join(",")}&quot;` : `Datos!$G$2:$G$${lista.length + 1}`;
-    const validacion = `<dataValidations count="1"><dataValidation type="list" allowBlank="0" showInputMessage="1" showErrorMessage="1" errorTitle="Ficha" error="Elige una ficha de la lista." promptTitle="Ficha" prompt="Elige una ficha de la lista" sqref="B1"><formula1>${origen}</formula1></dataValidation></dataValidations>`;
+    const xmlEsc = v => v.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+    const origenF = lista.join(",").length <= 240 ? `&quot;${lista.map(xmlEsc).join(",")}&quot;` : `Datos!$H$2:$H$${lista.length + 1}`;
+    const origenJ = `&quot;${juegos2.map(xmlEsc).join(",")}&quot;`;
+    const lista1 = (celda, origen, titulo, aviso) => `<dataValidation type="list" allowBlank="0" showInputMessage="1" showErrorMessage="1" errorTitle="${titulo}" error="${aviso}" promptTitle="${titulo}" prompt="${aviso}" sqref="${celda}"><formula1>${origen}</formula1></dataValidation>`;
+    const validacion = `<dataValidations count="2">${lista1("B1", origenF, "Ficha", "Elige una ficha de la lista")}${lista1("B2", origenJ, "Juego", "Elige un juego de la lista")}</dataValidations>`;
     // Excel exige un orden: la lista va después de los datos/filtros y antes de márgenes, errores ignorados, etc.
     const posiciones = ["<hyperlinks", "<printOptions", "<pageMargins", "<pageSetup", "<headerFooter", "<ignoredErrors", "<drawing", "</worksheet>"].map(t => xml.indexOf(t)).filter(i => i >= 0);
     if (!posiciones.length || xml.indexOf("</sheetData>") < 0) throw new Error("estructura inesperada");
