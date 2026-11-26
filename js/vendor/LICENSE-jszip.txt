@@ -1,0 +1,4 @@
+jszip.min.js — JSZip v3.10.1
+(c) 2009-2016 Stuart Knightley
+Licencia: MIT o GPLv3 (doble licencia) — https://github.com/Stuk/jszip/blob/main/LICENSE.markdown
+Se usa para completar el archivo Excel (.xlsx) con la lista desplegable de fichas.
