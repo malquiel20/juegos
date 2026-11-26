@@ -214,9 +214,10 @@
     <div class="stat"><div><span class="big" id="in-n">0</span> <span class="mono" style="font-size:10px;color:var(--muted)">INSCRITOS</span></div><span class="chip mute" id="in-src"></span></div>
     <button class="btn sec" id="in-refresh" style="margin-top:12px">↻ Actualizar</button>
     <button class="btn" id="in-xlsx" type="button" style="margin-top:10px">⬇ Descargar Excel (por ficha, con filtros)</button>
+    <p class="help" style="margin:6px 2px 0">En el celular, abre el archivo con <b>Excel</b> o <b>Google Sheets</b> (la vista previa de Drive/WhatsApp no deja usar las listas de filtro).</p>
     <button class="link" id="in-csv" style="margin-top:6px;width:100%">o descargar en CSV</button>
   </div>
-  <div class="tabs" id="in-tabs" style="margin:0"></div>
+  <div id="in-juegos"></div>
   <div id="in-fichas"></div>
   <input id="in-q" type="search" placeholder="Buscar por nombre o cédula...">
   <div class="list" id="in-list"></div>
@@ -359,7 +360,7 @@ function agrupadoPorFicha(lista, fila){   // encabezado "Ficha X · n" y debajo 
   return h;
 }
 const fichaSel = { "Ajedrez":null, "Dominó":null, "Bingo":null };    // tarjetas de cada juego (null = cerrada)
-const invFicha = { "Ajedrez":"", "Dominó":"", "Bingo":"" };         // filtro de la pantalla Inscritos
+const invFicha = { "Todos":"", "Ajedrez":"", "Dominó":"", "Bingo":"" };         // filtro de la pantalla Inscritos
 function renderFichaCard(game, el){
   const lista = ofGame(game), sel = fichaSel[game], card = $(el);
   const eqDe = {}; if (game === "Dominó") teamsModel().teams.forEach(t => { eqDe[t.a.doc] = t.name; eqDe[t.b.doc] = t.name; });
@@ -379,7 +380,12 @@ function renderFichaCard(game, el){
   renderFichaCard(game, el);
 }));
 
-let invGame = "Ajedrez";
+let invGame = "Todos";   // "Todos" = los tres juegos juntos; si no, Ajedrez / Dominó / Bingo
+function selectJuego(sel, all){
+  const op = (v, t) => `<option value="${esc(v)}"${sel === v ? " selected" : ""}>${esc(t)}</option>`;
+  return `<label class="t" style="margin-bottom:6px">Filtrar por juego</label><select class="fsel" data-ij>` +
+    op("Todos", `Todos los juegos (${all.length})`) + GAMES.map(g => op(g, `${g} (${all.filter(p => p.juego === g).length})`)).join("") + `</select>`;
+}
 let moverId = null;   // persona a la que se le está eligiendo el juego de destino
 function razonMover(p, to){   // "" = se puede; si no, el motivo
   const mios = people().filter(x => x.doc === p.doc);
@@ -408,24 +414,26 @@ async function pasarA(id, to){
   const avisos = [];
   if (p.juego === "Dominó" && (S.teams || []).some(t => t.a === p.doc || t.b === p.doc)){ S.teams = S.teams.filter(t => t.a !== p.doc && t.b !== p.doc); save(); avisos.push("Su equipo de Dominó se deshizo."); }
   if ((p.juego === "Ajedrez" || to === "Ajedrez") && S.ajbk) avisos.push("Ya generaste las llaves de Ajedrez: para que cuenten este cambio, bórralas y genéralas otra vez.");
-  moverId = null; invGame = to; await loadRemote(); rerender();
+  moverId = null; if (invGame !== "Todos") invGame = to; await loadRemote(); rerender();
   alert(p.nombre + " ahora está en " + to + "." + (avisos.length ? "\n\n" + avisos.join("\n") : ""));
 }
 function renderInscritos(){
   const all = people(), q = norm($("#in-q").value || "");
   $("#in-n").textContent = all.length; $("#in-src").textContent = srcLabel(); $("#aviso-demo").classList.toggle("hide", D.modo !== "demo");
-  $("#in-tabs").innerHTML = GAMES.map(g => `<button data-ig="${g}" class="${g===invGame?"on":""}">${g} · ${ofGame(g).length}</button>`).join("");
+  $("#in-juegos").innerHTML = selectJuego(invGame, all);
   const otrosJ = {}; all.forEach(p => (otrosJ[p.doc] = otrosJ[p.doc] || []).push(p.juego));
   const equipoDe = {}; teamsModel().teams.forEach(t => { equipoDe[t.a.doc] = t.name; equipoDe[t.b.doc] = t.name; });
-  const juegoLista = ofGame(invGame), fSel = invFicha[invGame];
+  const juegoLista = invGame === "Todos" ? all : ofGame(invGame), fSel = invFicha[invGame] || "";
   $("#in-fichas").innerHTML = selectFicha(juegoLista, fSel, "if", false);
-  const list = juegoLista.filter(p => (fSel === "" || p.ficha === fSel) && (!q || norm(p.nombre + " " + p.doc).includes(q)));
-  const filaIn = (p,i) => `<div class="pt"><span class="sd">${pad(i+1)}</span><div style="min-width:0;flex:1"><b>${esc(p.nombre)}</b><small>CC ${esc(p.doc)}${p.ficha ? " · Ficha " + esc(p.ficha) : ""}${invGame === "Dominó" && equipoDe[p.doc] ? " · Equipo: " + esc(equipoDe[p.doc]) : ""}${otrosJ[p.doc].length > 1 ? " · También en " + esc(otrosJ[p.doc].filter(j => j !== invGame).join(" y ")) : ""}</small></div>${p.id ? `<button class="del mvb" data-mv="${esc(p.id)}" title="Pasar a otro juego" aria-label="Pasar a ${esc(p.nombre)} a otro juego"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4L3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/></svg></button>` : ""}${p.id ? `<button class="del" data-del="${esc(p.id)}" title="Quitar a esta persona de ${esc(invGame)}" aria-label="Quitar a ${esc(p.nombre)}"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6"/></svg></button>` : ""}</div>` + (p.id && moverId === p.id ? menuMover(p) : "");
-  const resumen = `<p class="help" style="margin:2px 2px 0"><b>${list.length}</b> ${fSel === "" ? "en " + esc(invGame) : "en " + esc(invGame) + " con la ficha " + esc(fSel)}${q ? " (según la búsqueda)" : ""}</p>`;
+  const list = juegoLista.filter(p => (fSel === "" || p.ficha === fSel) && (!q || norm(p.nombre + " " + p.doc).includes(q)))
+    .map((p, i) => ({ p, i })).sort((x, y) => GAMES.indexOf(x.p.juego) - GAMES.indexOf(y.p.juego) || x.i - y.i).map(x => x.p);   // por juego y, dentro, por orden de registro
+  const filaIn = (p,i) => `<div class="pt"><span class="sd">${pad(i+1)}</span><div style="min-width:0;flex:1"><b>${esc(p.nombre)}</b><small>CC ${esc(p.doc)}${p.ficha ? " · Ficha " + esc(p.ficha) : ""}${invGame === "Todos" ? " · " + esc(p.juego) : ""}${p.juego === "Dominó" && equipoDe[p.doc] ? " · Equipo: " + esc(equipoDe[p.doc]) : ""}${invGame !== "Todos" && otrosJ[p.doc].length > 1 ? " · También en " + esc(otrosJ[p.doc].filter(j => j !== p.juego).join(" y ")) : ""}</small></div>${p.id ? `<button class="del mvb" data-mv="${esc(p.id)}" title="Pasar a otro juego" aria-label="Pasar a ${esc(p.nombre)} a otro juego"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4L3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/></svg></button>` : ""}${p.id ? `<button class="del" data-del="${esc(p.id)}" title="Quitar a esta persona de ${esc(p.juego)}" aria-label="Quitar a ${esc(p.nombre)}"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6"/></svg></button>` : ""}</div>` + (p.id && moverId === p.id ? menuMover(p) : "");
+  const nomJ = invGame === "Todos" ? "todos los juegos" : invGame;
+  const resumen = `<p class="help" style="margin:2px 2px 0"><b>${list.length}</b> ${fSel === "" ? "en " + esc(nomJ) : "en " + esc(nomJ) + " con la ficha " + esc(fSel)}${q ? " (según la búsqueda)" : ""}</p>`;
   $("#in-list").innerHTML = list.length ? resumen + (fSel === "" ? agrupadoPorFicha(list, filaIn) : list.map(filaIn).join(""))
-    : `<div class="empty">${q ? "Sin resultados." : fSel !== "" ? "Nadie en " + esc(invGame) + " con la ficha " + esc(fSel) + "." : "Aún no hay inscritos en " + invGame + "."}</div>`;
+    : `<div class="empty">${q ? "Sin resultados." : fSel !== "" ? "Nadie en " + esc(nomJ) + " con la ficha " + esc(fSel) + "." : "Aún no hay inscritos en " + esc(nomJ) + "."}</div>`;
 }
-$("#in-tabs").addEventListener("click", e => { const b = e.target.closest("[data-ig]"); if (b){ invGame = b.dataset.ig; renderInscritos(); } });
+$("#in-juegos").addEventListener("change", e => { if (e.target.matches("[data-ij]")){ invGame = e.target.value; renderInscritos(); } });
 $("#in-fichas").addEventListener("change", e => { if (e.target.matches("[data-if]")){ invFicha[invGame] = e.target.value; renderInscritos(); } });
 $("#in-q").addEventListener("input", renderInscritos);
 $("#in-refresh").addEventListener("click", async () => { await loadRemote(); rerender(); });
@@ -437,7 +445,7 @@ $("#in-list").addEventListener("click", async e => {
   if (to) return pasarA(to.dataset.id, to.dataset.mvto);
   const d = e.target.closest("[data-del]"); if (!d) return;
   const p = remote.find(x => x.id === d.dataset.del);
-  if (!confirm("¿Quitar a " + (p ? p.nombre : "esta persona") + " de " + invGame + "?\nSolo se quita de este juego; los demás registros no se tocan.")) return;
+  if (!confirm("¿Quitar a " + (p ? p.nombre : "esta persona") + " de " + (p ? p.juego : invGame) + "?\nSolo se quita de este juego; los demás registros no se tocan.")) return;
   const r = await D.borrar(d.dataset.del);
   if (r && !r.ok && r.error !== "cancelado" && r.error !== "clave") return alert("No se pudo quitar. Inténtalo de nuevo.");
   if (r && r.ok && p && p.juego === "Dominó"){ S.teams = (S.teams || []).filter(t => t.a !== p.doc && t.b !== p.doc); save(); }   // si estaba en un equipo, el equipo se deshace
