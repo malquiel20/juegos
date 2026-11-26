@@ -173,6 +173,8 @@
   .num{width:80px;padding:8px 10px;font:inherit;color:var(--ink);background:var(--card2);border:1px solid var(--line);border-radius:10px;text-align:center}
   .help{font-size:12px;color:var(--muted);margin:6px 0 0}
   .hide{display:none}
+  .tabs.wrap{flex-wrap:wrap;overflow:visible}
+  .gh{font:700 11px var(--f-mono);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:12px 2px 2px}
   button.del{flex:none;display:grid;place-items:center;width:40px;height:40px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--err);cursor:pointer}
   button.del:active{transform:scale(.94)}
   .btn.danger{background:var(--err);border-color:var(--err);color:#fff;margin-top:10px}
@@ -202,19 +204,24 @@
   <div class="card">
     <div class="stat"><div><span class="big" id="in-n">0</span> <span class="mono" style="font-size:10px;color:var(--muted)">INSCRITOS</span></div><span class="chip mute" id="in-src"></span></div>
     <button class="btn sec" id="in-refresh" style="margin-top:12px">↻ Actualizar</button>
-    <button class="link" id="in-csv" style="margin-top:10px;width:100%">⬇ Descargar la lista (Excel / CSV)</button>
+    <button class="btn" id="in-xlsx" type="button" style="margin-top:10px">⬇ Descargar Excel (por ficha, con filtros)</button>
+    <button class="link" id="in-csv" style="margin-top:6px;width:100%">o descargar en CSV</button>
+  </div>
+  <div class="tabs" id="in-tabs" style="margin:0"></div>
+  <div class="tabs wrap" id="in-fichas" style="margin:0"></div>
+  <input id="in-q" type="search" placeholder="Buscar por nombre o cédula...">
+  <div class="list" id="in-list"></div>
+  <div class="card" style="margin-top:6px"><div class="sec-h"><h2>Borrar</h2><small>con confirmación</small></div>
     <button class="btn danger" id="in-sheet" type="button"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6"/></svg> Borrar registros</button>
     <button class="btn danger-sec" id="in-reset" type="button"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6"/></svg> Borrar todo (inscritos, equipos y resultados)</button>
   </div>
-  <div class="tabs" id="in-tabs" style="margin:0"></div>
-  <input id="in-q" type="search" placeholder="Buscar por nombre o cédula...">
-  <div class="list" id="in-list"></div>
 </section>
 
 <!-- ===== EQUIPOS DE DOMINÓ ===== -->
 <section class="screen" id="s-equipos">
   <header class="hero small"><h1>Dominó · Equipos</h1><p>Tú armas los equipos: escribe el nombre, toca a los dos jugadores y pulsa <b>Crear equipo</b>.</p></header>
   <div class="card"><div class="stat"><div><span class="big" id="eq-n">0</span> <span class="mono" style="font-size:10px;color:var(--muted)">EQUIPOS</span></div><span class="chip mute" id="eq-p"></span></div></div>
+  <div class="card" id="fi-dom"></div>
   <div class="card">
     <div class="sec-h"><h2>Crear equipo</h2><small id="eq-sel">0 de 2</small></div>
     <p class="help" style="margin:0 0 8px"><b>1.</b> Toca a los <b>2 jugadores</b> del equipo</p>
@@ -231,12 +238,14 @@
 <!-- ===== AJEDREZ ===== -->
 <section class="screen" id="s-ajedrez">
   <header class="hero small"><h1>Ajedrez · Eliminatoria</h1><p>Individual: quien pierde queda eliminado y el ganador pasa a la siguiente ronda. Toca al ganador de cada partida.</p></header>
+  <div class="card" id="fi-aj"></div>
   <div id="ajbk"></div>
 </section>
 
 <!-- ===== BINGO ===== -->
 <section class="screen" id="s-bingo">
   <header class="hero small"><h1>Bingo · Rondas</h1><p>Primero los que solo se inscribieron en Bingo (por orden de registro), luego los que ya estaban en otro juego y al final los que agregues a mano.</p></header>
+  <div class="card" id="fi-bin"></div>
   <div id="bg"></div>
 </section>
 
@@ -256,6 +265,7 @@
   <button data-go="llaves"><svg viewBox="0 0 24 24"><path d="M3 5h5v5H3zM3 14h5v5H3zM16 9.5h5v5h-5zM8 7.5h3v9H8M11 12h5"/></svg>Llaves</button>
 </div></nav>
 
+<script src="js/vendor/xlsx.mini.min.js"></script>
 <script src="js/vendor/qrcode.js"></script>
 <script src="js/config.js?v=202611242228"></script>
 <script src="js/datos.js?v=202611242228"></script>
@@ -305,7 +315,7 @@ const save = () => { clearTimeout(tGuardar); tGuardar = setTimeout(() => { D.gua
 let remote = [], remoteState = "loading";
 
 /* ---------- Inscritos (vienen de la lista interna) ---------- */
-const normalizar = x => ({ id:x.id || "", nombre:clean(String(x.nombre)), ficha:String(x.ficha||""), doc:digits(x.doc), juego:canon(x.juego) });
+const normalizar = x => ({ id:x.id || "", nombre:clean(String(x.nombre)), ficha:String(x.ficha||""), doc:digits(x.doc), juego:canon(x.juego), fecha:String(x.fecha || "") });
 async function loadRemote(){
   try {
     remote = (await D.listar()).map(normalizar).filter(p => p.nombre && p.doc && p.juego);
@@ -320,6 +330,42 @@ function people(){
 const ofGame = g => people().filter(p => p.juego === g);
 const srcLabel = () => ({demo:"Modo de prueba", loading:"Cargando…", ok:"Conectado", fail:"Sin conexión"})[remoteState];
 
+/* ---------- Filtro por ficha ---------- */
+function fichasDe(lista){
+  const set = new Set([...((window.TORNEO || {}).fichas || []), ...lista.map(p => p.ficha).filter(Boolean)]);
+  return [...set].sort((x, y) => String(x).localeCompare(String(y), "es", { numeric:true }));
+}
+function chipsFicha(lista, sel, attr){   // sel: "" = todas · "3493748" = una ficha · null = ninguna marcada
+  return `<button data-${attr}="" class="${sel === "" ? "on" : ""}">Todas · ${lista.length}</button>` +
+    fichasDe(lista).map(f => `<button data-${attr}="${esc(f)}" class="${sel === f ? "on" : ""}">Ficha ${esc(f)} · ${lista.filter(p => p.ficha === f).length}</button>`).join("");
+}
+function agrupadoPorFicha(lista, fila){   // encabezado "Ficha X · n" y debajo quiénes son
+  let h = "", i = 0;
+  fichasDe(lista).forEach(f => { const g = lista.filter(p => p.ficha === f); if (g.length) h += `<div class="gh">Ficha ${esc(f)} · ${g.length}</div>` + g.map(p => fila(p, i++)).join(""); });
+  const sin = lista.filter(p => !p.ficha); if (sin.length) h += `<div class="gh">Sin ficha · ${sin.length}</div>` + sin.map(p => fila(p, i++)).join("");
+  return h;
+}
+const fichaSel = { "Ajedrez":null, "Dominó":null, "Bingo":null };    // tarjetas de cada juego (null = cerrada)
+const invFicha = { "Ajedrez":"", "Dominó":"", "Bingo":"" };         // filtro de la pantalla Inscritos
+function renderFichaCard(game, el){
+  const lista = ofGame(game), sel = fichaSel[game], card = $(el);
+  const eqDe = {}; if (game === "Dominó") teamsModel().teams.forEach(t => { eqDe[t.a.doc] = t.name; eqDe[t.b.doc] = t.name; });
+  const fila = p => `<div class="pt" style="margin-top:6px"><div style="min-width:0;flex:1"><b>${esc(p.nombre)}</b><small>CC ${esc(p.doc)}${eqDe[p.doc] ? " · Equipo: " + esc(eqDe[p.doc]) : ""}</small></div></div>`;
+  const mostrar = sel === null ? [] : lista.filter(p => sel === "" || p.ficha === sel);
+  card.dataset.game = game;
+  card.innerHTML = `<div class="sec-h"><h2>${esc(game)} · por ficha</h2><small>${lista.length} inscritos</small></div>
+    <div class="tabs wrap" style="margin:0">${chipsFicha(lista, sel, "fc")}</div>` +
+    (sel === null ? `<p class="help" style="margin:10px 0 0">Toca una ficha para ver cuántos hay y quiénes son.</p>`
+      : `<p class="help" style="margin:10px 0 0"><b>${mostrar.length}</b> ${sel === "" ? "en total, agrupados por ficha" : "con la ficha " + esc(sel)}</p>` +
+        (mostrar.length ? (sel === "" ? agrupadoPorFicha(mostrar, fila) : mostrar.map(fila).join("")) : `<div class="empty" style="padding:12px">Nadie con esa ficha.</div>`));
+}
+["#fi-aj", "#fi-dom", "#fi-bin"].forEach(el => $(el).addEventListener("click", e => {
+  const b = e.target.closest("[data-fc]"); if (!b) return;
+  const game = $(el).dataset.game, v = b.dataset.fc;
+  fichaSel[game] = fichaSel[game] === v ? null : v;     // tocar la ficha ya marcada cierra la lista
+  renderFichaCard(game, el);
+}));
+
 let invGame = "Ajedrez";
 function renderInscritos(){
   const all = people(), q = norm($("#in-q").value || "");
@@ -327,11 +373,16 @@ function renderInscritos(){
   $("#in-tabs").innerHTML = GAMES.map(g => `<button data-ig="${g}" class="${g===invGame?"on":""}">${g} · ${ofGame(g).length}</button>`).join("");
   const otrosJ = {}; all.forEach(p => (otrosJ[p.doc] = otrosJ[p.doc] || []).push(p.juego));
   const equipoDe = {}; teamsModel().teams.forEach(t => { equipoDe[t.a.doc] = t.name; equipoDe[t.b.doc] = t.name; });
-  const list = ofGame(invGame).filter(p => !q || norm(p.nombre + " " + p.doc).includes(q));
-  $("#in-list").innerHTML = list.length ? list.map((p,i) => `<div class="pt"><span class="sd">${pad(i+1)}</span><div style="min-width:0;flex:1"><b>${esc(p.nombre)}</b><small>CC ${esc(p.doc)}${p.ficha ? " · Ficha " + esc(p.ficha) : ""}${invGame === "Dominó" && equipoDe[p.doc] ? " · Equipo: " + esc(equipoDe[p.doc]) : ""}${otrosJ[p.doc].length > 1 ? " · También en " + esc(otrosJ[p.doc].filter(j => j !== invGame).join(" y ")) : ""}</small></div>${p.id ? `<button class="del" data-del="${esc(p.id)}" title="Quitar a esta persona de ${esc(invGame)}" aria-label="Quitar a ${esc(p.nombre)}"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6"/></svg></button>` : ""}</div>`).join("")
-    : `<div class="empty">${q ? "Sin resultados." : "Aún no hay inscritos en " + invGame + "."}</div>`;
+  const juegoLista = ofGame(invGame), fSel = invFicha[invGame];
+  $("#in-fichas").innerHTML = chipsFicha(juegoLista, fSel, "if");
+  const list = juegoLista.filter(p => (fSel === "" || p.ficha === fSel) && (!q || norm(p.nombre + " " + p.doc).includes(q)));
+  const filaIn = (p,i) => `<div class="pt"><span class="sd">${pad(i+1)}</span><div style="min-width:0;flex:1"><b>${esc(p.nombre)}</b><small>CC ${esc(p.doc)}${p.ficha ? " · Ficha " + esc(p.ficha) : ""}${invGame === "Dominó" && equipoDe[p.doc] ? " · Equipo: " + esc(equipoDe[p.doc]) : ""}${otrosJ[p.doc].length > 1 ? " · También en " + esc(otrosJ[p.doc].filter(j => j !== invGame).join(" y ")) : ""}</small></div>${p.id ? `<button class="del" data-del="${esc(p.id)}" title="Quitar a esta persona de ${esc(invGame)}" aria-label="Quitar a ${esc(p.nombre)}"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6"/></svg></button>` : ""}</div>`;
+  const resumen = `<p class="help" style="margin:2px 2px 0"><b>${list.length}</b> ${fSel === "" ? "en " + esc(invGame) : "en " + esc(invGame) + " con la ficha " + esc(fSel)}${q ? " (según la búsqueda)" : ""}</p>`;
+  $("#in-list").innerHTML = list.length ? resumen + (fSel === "" ? agrupadoPorFicha(list, filaIn) : list.map(filaIn).join(""))
+    : `<div class="empty">${q ? "Sin resultados." : fSel !== "" ? "Nadie en " + esc(invGame) + " con la ficha " + esc(fSel) + "." : "Aún no hay inscritos en " + invGame + "."}</div>`;
 }
 $("#in-tabs").addEventListener("click", e => { const b = e.target.closest("[data-ig]"); if (b){ invGame = b.dataset.ig; renderInscritos(); } });
+$("#in-fichas").addEventListener("click", e => { const b = e.target.closest("[data-if]"); if (b){ invFicha[invGame] = b.dataset.if; renderInscritos(); } });
 $("#in-q").addEventListener("input", renderInscritos);
 $("#in-refresh").addEventListener("click", async () => { await loadRemote(); rerender(); });
 $("#in-list").addEventListener("click", async e => {
@@ -343,6 +394,38 @@ $("#in-list").addEventListener("click", async e => {
   if (r && r.ok && p && p.juego === "Dominó"){ S.teams = (S.teams || []).filter(t => t.a !== p.doc && t.b !== p.doc); save(); }   // si estaba en un equipo, el equipo se deshace
   await loadRemote(); rerender();
 });
+function descargarExcel(){
+  if (!window.XLSX) return alert("No se pudo cargar el generador de Excel. Recarga la página e inténtalo de nuevo.");
+  const todos = people().slice();
+  if (!todos.length) return alert("Todavía no hay inscritos para descargar.");
+  const cmp = (x, y) => String(x.ficha).localeCompare(String(y.ficha), "es", { numeric:true }) || x.nombre.localeCompare(y.nombre, "es");
+  const fecha = p => { if (!p.fecha) return ""; const d = new Date(p.fecha); return isNaN(d) ? "" : d.getFullYear() + "-" + pad(d.getMonth()+1) + "-" + pad(d.getDate()) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()); };
+  const eqDe = {}; teamsModel().teams.forEach(t => { eqDe[t.a.doc] = t.name; eqDe[t.b.doc] = t.name; });
+  const hoja = (filas, anchos, filtro) => {
+    const ws = XLSX.utils.aoa_to_sheet(filas);
+    ws["!cols"] = anchos.map(w => ({ wch:w }));
+    if (filtro) ws["!autofilter"] = { ref: XLSX.utils.encode_range({ s:{ r:0, c:0 }, e:{ r:filas.length - 1, c:filas[0].length - 1 } }) };
+    return ws;
+  };
+  const wb = XLSX.utils.book_new();
+  // 1) Todos, ordenados por ficha (y luego juego y nombre). La columna A es la ficha: ahí se filtra.
+  const orden = todos.slice().sort((x, y) => String(x.ficha).localeCompare(String(y.ficha), "es", { numeric:true }) || x.juego.localeCompare(y.juego, "es") || x.nombre.localeCompare(y.nombre, "es"));
+  XLSX.utils.book_append_sheet(wb, hoja([["Ficha", "Juego", "Nombre y apellido", "Cédula", "Fecha de registro"]].concat(orden.map(p => [String(p.ficha), p.juego, p.nombre, String(p.doc), fecha(p)])), [12, 10, 36, 14, 18], true), "Por ficha");
+  // 2) Una hoja por juego, también ordenada por ficha y con filtro
+  GAMES.forEach(g => {
+    const l = todos.filter(p => p.juego === g).sort(cmp);
+    const dom = g === "Dominó";
+    const enc = dom ? ["Ficha", "Nombre y apellido", "Cédula", "Equipo", "Fecha de registro"] : ["Ficha", "Nombre y apellido", "Cédula", "Fecha de registro"];
+    XLSX.utils.book_append_sheet(wb, hoja([enc].concat(l.map(p => dom ? [String(p.ficha), p.nombre, String(p.doc), eqDe[p.doc] || "", fecha(p)] : [String(p.ficha), p.nombre, String(p.doc), fecha(p)])), dom ? [12, 36, 14, 24, 18] : [12, 36, 14, 18], true), g);
+  });
+  // 3) Resumen: cuántos hay de cada ficha en cada juego
+  const fichas = fichasDe(todos), filas = [["Ficha", ...GAMES, "Total"]];
+  fichas.forEach(f => { const c = GAMES.map(g => todos.filter(p => p.juego === g && p.ficha === f).length); filas.push([String(f), ...c, c.reduce((s, n) => s + n, 0)]); });
+  const tot = GAMES.map(g => todos.filter(p => p.juego === g).length); filas.push(["Total", ...tot, tot.reduce((s, n) => s + n, 0)]);
+  XLSX.utils.book_append_sheet(wb, hoja(filas, [12, 10, 10, 10, 10], false), "Resumen");
+  XLSX.writeFile(wb, "inscritos-por-ficha.xlsx");
+}
+$("#in-xlsx").addEventListener("click", descargarExcel);
 $("#in-csv").addEventListener("click", () => {
   const url = URL.createObjectURL(new Blob([D.csv(remote)], { type:"text/csv;charset=utf-8" }));
   const a = document.createElement("a"); a.href = url; a.download = "inscritos.csv"; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
@@ -385,6 +468,7 @@ function botonEquipo(){
 }
 $("#eq-nom").addEventListener("input", botonEquipo);
 function renderEquipos(){
+  renderFichaCard("Dominó", "#fi-dom");
   const { teams, pending } = teamsModel(), q = norm($("#eq-q").value || "");
   eqSel = eqSel.filter(d => pending.some(p => p.doc === d));
   $("#eq-n").textContent = teams.length; $("#eq-p").textContent = pending.length + " sin equipo";
@@ -434,6 +518,7 @@ function bingoModel(){
   return { B, reg, ext, queue, pending, done, n };
 }
 function renderBingo(){
+  renderFichaCard("Bingo", "#fi-bin");
   const M = bingoModel(), n = M.n, base = M.B.jugadas.length;
   const fila = (p, i, quitar) => `<div class="pt" style="margin-top:6px"><span class="sd">${pad(i+1)}</span><div style="min-width:0;flex:1"><b>${esc(p.nombre)}</b></div>
     <span class="chip ${p.insc && !p.otro ? "" : "mute"}">${!p.insc ? "Adicional" : p.otro ? "También en " + esc(p.otro) : "Inscrito"}</span>${quitar && !p.insc ? `<button class="link" data-xdel="${esc(p.id)}" title="Quitar">✕</button>` : ""}</div>`;
@@ -546,7 +631,7 @@ const LL_AJ = crearLlaves({ el:"#ajbk", key:"ajbk", plural:"jugadores", campeon:
   nota:"Los jugadores se acomodan en el cuadro al azar. Quien pierde queda eliminado y el ganador pasa a la siguiente ronda.",
   ayuda:"Toca al ganador de cada partida. Quien pierde queda eliminado. Si hay tablas, jueguen un desempate y marca al ganador.",
   candidatos: () => ofGame("Ajedrez").map(p => ({ id:p.doc, name:p.nombre, sub:p.ficha ? "Ficha " + p.ficha : "" })) });
-const renderLlaves = LL_DOM.render, renderAjedrez = LL_AJ.render;
+const renderLlaves = LL_DOM.render, renderAjedrez = () => { renderFichaCard("Ajedrez", "#fi-aj"); LL_AJ.render(); };
 
 /* ---------- Link y QR para los jugadores (solo con el programa del computador) ---------- */
 async function mostrarLink(){

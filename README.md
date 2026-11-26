@@ -41,7 +41,7 @@ Mientras el computador y la ventana negra estén abiertos, el registro funciona 
 - `inscritos.json`: la lista de inscritos (la base de datos). Se guarda una copia de seguridad `.bak` en cada cambio.
 - `estado.json`: parejas de dominó, llaves, ajedrez y bingo del panel.
 
-Desde el panel, en **Inscritos**, puedes **descargar la lista en Excel/CSV**, **quitar** a una persona concreta (botón 🗑 al lado de cada nombre; solo se quita de ese juego), **Borrar registros** (botón rojo con ícono de basura; borra todos los inscritos) o **Borrar todo** (inscritos, equipos y resultados). Los dos piden una confirmación Sí/No. Úsalos al terminar las pruebas.
+Desde el panel, en **Inscritos**: **filtras por ficha** (con el conteo de cuántos hay de cada una) y ves quiénes son, agrupados por ficha; **descargas un Excel** (`inscritos-por-ficha.xlsx`) con la hoja *Por ficha* (todos, ordenados por ficha), una hoja por juego (Ajedrez, Dominó con su equipo, Bingo) y un *Resumen* con el conteo de cada ficha en cada juego. Todas las hojas con datos tienen **filtro** en el encabezado, con la **Ficha en la columna A**. También puedes **quitar** a una persona concreta (botón 🗑 al lado de cada nombre; solo se quita de ese juego), **Borrar registros** (todos los inscritos) o **Borrar todo** (inscritos, equipos y resultados); los tres piden una confirmación Sí/No. Los filtros por ficha también están en las pantallas de Ajedrez, Equipos (Dominó) y Bingo.
 
 ## Reglas de inscripción
 - Una **cédula** no se repite en el mismo juego.
