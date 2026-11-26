@@ -22,6 +22,10 @@ Preparación (una sola vez, ~5 minutos):
 
 **Clave:** ver la lista de inscritos y registrarse **no piden clave**. La clave solo se pide para **borrar** inscritos o **guardar** cambios del panel (equipos, llaves, ajedrez, bingo), y queda recordada en ese dispositivo. Así ningún jugador puede alterar resultados ni vaciar la lista.
 
+**Pasar a una persona de un juego a otro (solo el organizador):** en **Inscritos**, el botón **⇄** de cada persona abre las opciones de destino. Se aplican las mismas reglas del registro: no puede quedar dos veces en el mismo juego, y Ajedrez y Dominó no pueden juntarse (el Bingo sí se suma). Se conservan su nombre, ficha y cédula; al entrar al Bingo va al final de la fila. Si era de Dominó y tenía equipo, el equipo se deshace; si hay llaves de Ajedrez ya generadas, hay que regenerarlas. Con Supabase hay que ejecutar **una vez** `supabase/mover.sql` (SQL Editor > Run; no borra ni cambia a nadie).
+
+**Bingo con premios:** escribes los **cartones** y los **premios** a entregar. Cada premio es una ronda y en cada ronda juegan tantas personas como cartones haya, así que el panel calcula las rondas, **cuántas personas pueden participar en total** (cartones × premios) y los cupos libres. Quien no alcanza cupo queda en *Sin cupo*.
+
 **Quitar la clave (solo Sí/No al borrar):** en Supabase > SQL Editor ejecuta `supabase/sin-clave.sql`. Desde ese momento borrar y guardar solo piden confirmar. Ten en cuenta que entonces cualquiera que conozca la dirección de la base de datos (está en el código público) podría borrar inscritos o cambiar resultados. Para volver a proteger con clave, ejecuta de nuevo `supabase/instalar.sql`.
 
 Supabase gratuito **pausa el proyecto tras 1 semana sin usarse**; se reactiva con un clic desde su página.

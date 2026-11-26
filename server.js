@@ -65,6 +65,23 @@ function registrar(d) {
   return { ok: true };
 }
 
+function mover(id, juego) {
+  const p = inscritos.find(x => x.id === id);
+  if (!p) return { ok: false, error: "no_existe" };
+  if (!JUEGOS.includes(juego)) return { ok: false, error: "datos" };
+  if (p.juego === juego) return { ok: false, error: "mismo" };
+  const mios = inscritos.filter(x => x.doc === p.doc);
+  if (mios.some(x => x.juego === juego)) return { ok: false, error: "ya_esta", juego };
+  if (juego !== "Bingo") {
+    const otro = mios.find(x => x.id !== p.id && x.juego !== "Bingo");
+    if (otro) return { ok: false, error: "excluyente", juego: otro.juego };
+  }
+  const de = p.juego; p.juego = juego;
+  if (juego === "Bingo") p.fecha = new Date().toISOString();   // entra al final de la fila del Bingo
+  escribir(F_INSCRITOS, inscritos);
+  return { ok: true, de, a: juego };
+}
+
 function csv() {
   const celda = v => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
   const filas = [["Fecha", "Nombre", "Ficha", "Cédula", "Juego"]]
@@ -122,6 +139,7 @@ const servidor = http.createServer(async (req, res) => {
         if (inscritos.length !== antes) escribir(F_INSCRITOS, inscritos);
         return json(res, 200, { ok: true, borrados: antes - inscritos.length });
       }
+      if (ruta === "/api/mover" && req.method === "POST") { const d = await cuerpo(req, 2000); return json(res, 200, mover(String(d.id || ""), String(d.juego || ""))); }
       if (ruta === "/api/vaciar" && req.method === "POST") {
         const d = await cuerpo(req, 2000);
         if (d.confirmar !== "BORRAR") return json(res, 400, { ok: false, error: "confirmar" });

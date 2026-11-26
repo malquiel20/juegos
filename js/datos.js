@@ -80,6 +80,23 @@
     lsSet(DEMO_KEY, lsGet(DEMO_KEY, []).filter(x => x.id !== id)); return { ok: true };
   };
 
+  // Pasar a una persona de un juego a otro (organizador). Mismas reglas que al registrarse.
+  D.mover = async function (id, juego) {
+    if (D.modo === "nube") {
+      try { return await conClave("mover", { p_id: id, p_juego: juego }); }
+      catch (e) { return { ok: false, error: /find the function|PGRST202|mover/i.test(String(e.message)) ? "sql" : "red" }; }
+    }
+    if (D.modo === "servidor") return (await fetch("/api/mover", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, juego }) })).json();
+    const lista = lsGet(DEMO_KEY, []), p = lista.find(x => x.id === id);
+    if (!p) return { ok: false, error: "no_existe" };
+    if (p.juego === juego) return { ok: false, error: "mismo" };
+    const mios = lista.filter(x => x.doc === p.doc);
+    if (mios.some(x => x.juego === juego)) return { ok: false, error: "ya_esta", juego };
+    if (juego !== "Bingo") { const otro = mios.find(x => x.id !== p.id && x.juego !== "Bingo"); if (otro) return { ok: false, error: "excluyente", juego: otro.juego }; }
+    const de = p.juego; p.juego = juego; if (juego === "Bingo") p.fecha = new Date().toISOString();
+    lsSet(DEMO_KEY, lista); return { ok: true, de, a: juego };
+  };
+
   D.vaciar = async function () {
     if (D.modo === "nube") return conClave("vaciar", {});
     if (D.modo === "servidor") return (await fetch("/api/vaciar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ confirmar: "BORRAR" }) })).json();
