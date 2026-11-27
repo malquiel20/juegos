@@ -717,15 +717,30 @@ function crearLlaves(c){
   const st = () => S[c.key];
   const subDe = t => t.sub != null ? t.sub : (t.a ? `${t.a.nombre} & ${t.b.nombre}` : "");
   function model(){
-    const T = st().teams, n = T.length; let size = 2; while (size < n) size *= 2;
-    const seeds = Array.from({length:size}, (_, i) => T[i] || null), rounds = Math.log2(size), byId = Object.fromEntries(T.map(p => [p.id, p]));
+    const T = st().teams, n = T.length, byId = Object.fromEntries(T.map(p => [p.id, p]));
+    if (st().v === 2){
+      // Todos juegan la primera ronda (pares al azar, sin pases directos); si queda uno suelto, pasa solo (bye) a la siguiente.
+      const cnt = [n]; while (cnt[cnt.length-1] > 1) cnt.push(Math.ceil(cnt[cnt.length-1] / 2));
+      const rounds = cnt.length - 1, matches = r => Math.ceil(cnt[r] / 2), bye = (r, m) => 2*m+1 >= cnt[r];
+      const entry = (r, i) => i >= cnt[r] ? null : r === 0 ? T[i] : winner(r-1, i);
+      const parts = (r, m) => [entry(r, 2*m), entry(r, 2*m+1)];
+      function winner(r, m){
+        const [a, b] = parts(r, m);
+        if (bye(r, m)) return a;
+        const w = byId[st().wins[r+"-"+m]]; return w && (w === a || w === b) ? w : null;
+      }
+      return { rounds, matches, bye, parts, winner };
+    }
+    // llaves antiguas (ya generadas antes): cuadro de potencia de 2 con pases directos
+    let size = 2; while (size < n) size *= 2;
+    const seeds = Array.from({length:size}, (_, i) => T[i] || null), rounds = Math.log2(size);
     const parts = (r, m) => r === 0 ? [seeds[m], seeds[size-1-m]] : [winner(r-1, 2*m), winner(r-1, 2*m+1)];
     function winner(r, m){
       const [a, b] = parts(r, m);
       if (r === 0 && a && !b) return a; if (r === 0 && b && !a) return b;
       const w = byId[st().wins[r+"-"+m]]; return w && (w === a || w === b) ? w : null;
     }
-    return { size, rounds, parts, winner };
+    return { rounds, matches: r => size / 2**(r+1), bye: (r, m) => { if (r !== 0) return false; const [a, b] = parts(r, m); return !a || !b; }, parts, winner };
   }
   function render(){
     const el = $(c.el), lista = c.candidatos();
@@ -737,23 +752,23 @@ function crearLlaves(c){
     }
     const M = model(), T = st().teams;
     if (stage === null || stage >= M.rounds){
-      stage = 0; for (let r = 0; r < M.rounds; r++){ let open = false; for (let m = 0; m < M.size/2**(r+1); m++){ const [a,b] = M.parts(r,m); if (a && b && !M.winner(r,m)) open = true; } stage = r; if (open) break; }
+      stage = 0; for (let r = 0; r < M.rounds; r++){ let open = false; for (let m = 0; m < M.matches(r); m++){ const [a,b] = M.parts(r,m); if (a && b && !M.winner(r,m)) open = true; } stage = r; if (open) break; }
     }
     const champ = M.winner(M.rounds-1, 0), [fa, fb] = M.parts(M.rounds-1, 0), seedOf = p => T.indexOf(p) + 1;
     const fin = p => p ? `<div><div class="nm">${esc(p.name)}</div><small>Sembrado ${seedOf(p)}</small></div>` : `<div><div class="nm" style="opacity:.6">Por definir</div><small>Ganador previo</small></div>`;
     let h = `<div class="hero" style="text-align:left"><div class="mono" style="font-size:11px;letter-spacing:.08em;text-transform:uppercase">🏆 Gran final</div><div class="final">${fin(fa)}<span class="vs">VS</span>${fin(fb)}</div>
       ${champ ? `<div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.18);text-align:center"><small style="color:var(--hero-mute)">${c.campeon}</small><div style="font:700 20px var(--f-head)">${esc(champ.name)}</div><small style="color:var(--hero-mute)">${esc(subDe(champ))}</small></div>` : ""}</div>`;
     h += `<div class="tabs" style="margin:14px 0">` + Array.from({length:M.rounds}, (_, r) => `<button data-stage="${r}" class="${r===stage?"on":""}">${roundName(r,M.rounds)}</button>`).join("") + `</div><div class="list">`;
-    for (let m = 0; m < M.size / 2**(stage+1); m++){
-      const [a, b] = M.parts(stage, m), w = M.winner(stage, m), bye = stage === 0 && (!a || !b);
+    for (let m = 0; m < M.matches(stage); m++){
+      const [a, b] = M.parts(stage, m), w = M.winner(stage, m), bye = M.bye(stage, m);
       const state = bye ? "Pase directo" : w ? "Finalizado" : a && b ? "Por jugar" : "Por definir";
-      const row = t => {
-        if (!t) return `<div class="tm tbd"><span class="w"><span class="sd">–</span><span><b>${bye ? "Libre (bye)" : "Por definir"}</b></span></span></div>`;
+      const row = (t, second) => {
+        if (!t) return `<div class="tm tbd"><span class="w"><span class="sd">–</span><span><b>${bye && second ? "Libre (bye)" : "Por definir"}</b></span></span></div>`;
         const cls = w ? (w === t ? "win" : "lose") : "", tag = w === t ? `<span class="tag">AVANZA</span>` : (w ? `<span class="tag" style="background:var(--card);color:var(--muted);border:1px solid var(--line)">ELIMINADO</span>` : "");
         const inner = `<span class="w"><span class="sd">${pad(seedOf(t))}</span><span><b>${esc(t.name)}</b><small>${esc(subDe(t))}</small></span></span>${tag}`;
         return a && b && !bye ? `<button class="tm ${cls}" data-win="${stage}-${m}" data-id="${esc(t.id)}">${inner}</button>` : `<div class="tm ${cls}">${inner}</div>`;
       };
-      h += `<div class="match"><div class="hd"><span>${c.mesa} ${pad(m+1)} · ${state}</span><span>Llave ${String.fromCharCode(65+stage)}-${m+1}</span></div>${row(a)}${row(b)}</div>`;
+      h += `<div class="match"><div class="hd"><span>${c.mesa} ${pad(m+1)} · ${state}</span><span>Llave ${String.fromCharCode(65+stage)}-${m+1}</span></div>${row(a)}${row(b, true)}</div>`;
     }
     el.innerHTML = h + `</div><p class="note">${c.ayuda}</p><button class="btn sec" data-reset="1" style="margin-top:6px">Borrar llaves y empezar de nuevo</button>`;
   }
@@ -761,7 +776,7 @@ function crearLlaves(c){
     const t = e.target.closest("[data-stage]"), w = e.target.closest("[data-win]");
     if (e.target.closest("[data-gen]")){
       const T = shuffle(c.candidatos());
-      S[c.key] = { teams:T, wins:{} }; stage = null; save(); render();
+      S[c.key] = { teams:T, wins:{}, v:2 }; stage = null; save(); render();
     }
     if (t){ stage = +t.dataset.stage; render(); }
     if (w){ const k = w.dataset.win, w2 = st().wins; if (w2[k] === w.dataset.id) delete w2[k]; else w2[k] = w.dataset.id; save(); render(); }
@@ -770,7 +785,7 @@ function crearLlaves(c){
   return { render, reset(){ stage = null; } };
 }
 const LL_DOM = crearLlaves({ el:"#bk", key:"bk", plural:"equipos", campeon:"PAREJA CAMPEONA", mesa:"Mesa", irA:"equipos", irTexto:"Ver equipos",
-  nota:"Los equipos se acomodan en el cuadro al azar.", ayuda:"Toca un equipo para marcarlo ganador. Quien pierde queda eliminado.",
+  nota:"Los equipos se emparejan al azar y todos juegan la primera ronda (con 10 equipos: 5 partidas). Tú eliges quién pasa a la siguiente.", ayuda:"Toca un equipo para marcarlo ganador. Quien pierde queda eliminado.",
   candidatos: () => teamsModel().teams.map(x => ({ id:x.key, name:x.name, sub:`${x.a.nombre} & ${x.b.nombre}` })) });
 const LL_AJ = crearLlaves({ el:"#ajbk", key:"ajbk", plural:"jugadores", campeon:"CAMPEÓN", mesa:"Tablero", irA:"inscritos", irTexto:"Ver inscritos",
   nota:"Los jugadores se acomodan en el cuadro al azar. Quien pierde queda eliminado y el ganador pasa a la siguiente ronda.",
