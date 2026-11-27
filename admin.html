@@ -727,7 +727,7 @@ function crearLlaves(c){
       function winner(r, m){
         const [a, b] = parts(r, m);
         if (bye(r, m)) return a;
-        const w = byId[st().wins[r+"-"+m]]; return w && (w === a || w === b) ? w : null;
+        const wid = st().wins[r+"-"+m], w = wid ? byId[wid] : null; return w && (w === a || w === b) ? w : null;
       }
       return { rounds, matches, bye, parts, winner };
     }
@@ -738,7 +738,7 @@ function crearLlaves(c){
     function winner(r, m){
       const [a, b] = parts(r, m);
       if (r === 0 && a && !b) return a; if (r === 0 && b && !a) return b;
-      const w = byId[st().wins[r+"-"+m]]; return w && (w === a || w === b) ? w : null;
+      const wid = st().wins[r+"-"+m], w = wid ? byId[wid] : null; return w && (w === a || w === b) ? w : null;
     }
     return { rounds, matches: r => size / 2**(r+1), bye: (r, m) => { if (r !== 0) return false; const [a, b] = parts(r, m); return !a || !b; }, parts, winner };
   }
@@ -750,6 +750,7 @@ function crearLlaves(c){
          <button class="btn" data-gen="1" style="margin-top:14px">Generar llaves</button><p class="note">${c.nota}</p></div>`;
       return;
     }
+    if (st().v !== 2 && !Object.keys(st().wins || {}).length){ st().v = 2; save(); }   // llaves viejas sin resultados: pasan solas al formato nuevo (todos juegan la primera ronda)
     const M = model(), T = st().teams;
     if (stage === null || stage >= M.rounds){
       stage = 0; for (let r = 0; r < M.rounds; r++){ let open = false; for (let m = 0; m < M.matches(r); m++){ const [a,b] = M.parts(r,m); if (a && b && !M.winner(r,m)) open = true; } stage = r; if (open) break; }
