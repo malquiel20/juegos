@@ -50,13 +50,10 @@ function registrar(d) {
   if (!nombre.includes(" ") || !ficha || doc.length < 5 || !JUEGOS.includes(juego)) return { ok: false, error: "datos" };
   if (inscritos.length >= MAX_INSCRITOS) return { ok: false, error: "lleno" };
 
-  // Una cédula no se repite en el mismo juego; Ajedrez y Dominó son excluyentes; el Bingo se puede sumar.
+  // Una cédula = un solo juego (solo el organizador puede pasarla a otro).
   const existentes = inscritos.filter(p => p.doc === doc).map(p => p.juego);
   if (existentes.includes(juego)) return { ok: false, duplicado: true, juego };
-  if (juego !== "Bingo") {
-    const otro = existentes.find(j => j !== "Bingo");
-    if (otro) return { ok: false, duplicado: true, juego: otro };
-  }
+  if (existentes.length) return { ok: false, duplicado: true, juego: existentes[0] };
   const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   inscritos.push({
     id, fecha: new Date().toISOString(), nombre, ficha, doc, juego,

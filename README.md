@@ -48,9 +48,7 @@ Mientras el computador y la ventana negra estén abiertos, el registro funciona 
 Desde el panel, en **Inscritos**: **filtras por juego con una lista desplegable** (por defecto *Todos los juegos*; también Ajedrez, Dominó o Bingo, con su conteo), **filtras por ficha con otra lista desplegable** (eliges la ficha y ves cuántos hay y quiénes son; en *Todas* salen agrupados por ficha); **descargas un Excel** (`inscritos-por-ficha.xlsx`) con la hoja *Por ficha* (todos, ordenados por ficha), una hoja por juego (Ajedrez, Dominó con su equipo, Bingo) y un *Resumen* con el conteo de cada ficha en cada juego. La primera hoja, **Por ficha**, es interactiva: al abrirla salen **todos** los inscritos, ordenados por ficha, y dos **listas desplegables** (celda B1 = ficha, celda B2 = juego) los van filtrando, solas o combinadas, con el conteo de cuántos se muestran. Las hojas de cada juego tienen **filtro** en el encabezado, con la **Ficha en la columna A**. También puedes **quitar** a una persona concreta (botón 🗑 al lado de cada nombre; solo se quita de ese juego), **Borrar registros** (todos los inscritos) o **Borrar todo** (inscritos, equipos y resultados); los tres piden una confirmación Sí/No. Los filtros por ficha también están en las pantallas de Ajedrez, Equipos (Dominó) y Bingo.
 
 ## Reglas de inscripción
-- Una **cédula** no se repite en el mismo juego.
-- **Ajedrez y Dominó son excluyentes**: una persona solo puede estar en uno de los dos.
-- El **Bingo se puede sumar** (una vez) aunque la persona ya esté en otro juego.
+- **Una cédula = un solo juego.** Quien ya se inscribió en un juego no puede entrar a otro desde el registro. Solo el organizador puede pasarla a otro juego (botón ⇄ del panel). Con Supabase hay que ejecutar **una vez** `supabase/un-juego.sql`.
 - El registro es solo: **nombre y apellido, ficha (lista), cédula y juego**. La ficha se elige de una lista (`js/config.js`) y puede repetirse.
 
 ## Panel del organizador

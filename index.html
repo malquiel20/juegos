@@ -199,7 +199,7 @@
         <select id="juego"><option value="">Elige un juego…</option><option value="Ajedrez">Ajedrez</option><option value="Dominó">Dominó</option><option value="Bingo">Bingo</option></select></div>
       <button class="btn" id="go" type="submit">¡Participar! →</button>
       <div id="msg" class="msg" role="status" aria-live="polite"></div>
-      <p class="note">Una cédula = un juego (Ajedrez o Dominó). El Bingo se puede sumar.</p>
+      <p class="note">Una cédula = un solo juego. Si ya te inscribiste, no puedes entrar a otro.</p>
     </form>
   </section>
   <footer class="f">Torneo de Juegos</footer>
@@ -240,7 +240,7 @@ $("#f").addEventListener("submit", async e => {
     } else if (j.duplicado){
       show("err", j.juego === juego
         ? `Esta cédula ya está inscrita en ${j.juego}.`
-        : `Esta cédula ya está inscrita en ${j.juego}. Solo se permite un juego por persona (el Bingo sí se puede sumar).`);
+        : `Esta cédula ya está inscrita en ${j.juego}. Solo se permite un juego por persona.`);
     } else {
       show("err", "Revisa los datos e inténtalo de nuevo.");
     }

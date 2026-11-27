@@ -49,7 +49,7 @@
   function registrarDemo(d) {
     const lista = lsGet(DEMO_KEY, []), propios = lista.filter(x => x.doc === d.doc).map(x => x.juego);
     if (propios.includes(d.juego)) return { ok: false, duplicado: true, juego: d.juego };
-    if (d.juego !== "Bingo") { const otro = propios.find(j => j !== "Bingo"); if (otro) return { ok: false, duplicado: true, juego: otro }; }
+    if (propios.length) return { ok: false, duplicado: true, juego: propios[0] };
     lista.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5), fecha: new Date().toISOString(), nombre: d.nombre, ficha: d.ficha, doc: d.doc, juego: d.juego });
     lsSet(DEMO_KEY, lista);
     return { ok: true };

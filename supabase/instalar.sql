@@ -53,7 +53,7 @@ language sql security definer set search_path = public as $$
   select exists (select 1 from public.ajustes where id = 1 and clave = coalesce(p_clave, ''));
 $$;
 
--- Inscribir: una cédula no se repite en el mismo juego; Ajedrez y Dominó son excluyentes; el Bingo se puede sumar.
+-- Inscribir: una cédula = un solo juego (el organizador puede pasarla a otro desde el panel).
 drop function if exists public.registrar(text, text, text, text, text, text);          -- versiones anteriores
 drop function if exists public.registrar(text, text, text, text, text, text, text);
 drop function if exists public.registrar(text, text, text, text, text, text, text, text);
@@ -74,11 +74,10 @@ begin
   if exists (select 1 from public.inscritos where doc = v_doc and juego = p_juego) then
     return jsonb_build_object('ok', false, 'duplicado', true, 'juego', p_juego);
   end if;
-  if p_juego <> 'Bingo' then
-    select juego into v_otro from public.inscritos where doc = v_doc and juego <> 'Bingo' limit 1;
-    if v_otro is not null then
-      return jsonb_build_object('ok', false, 'duplicado', true, 'juego', v_otro);
-    end if;
+  -- una persona = un solo juego (solo el organizador puede pasarla a otro desde el panel)
+  select juego into v_otro from public.inscritos where doc = v_doc limit 1;
+  if v_otro is not null then
+    return jsonb_build_object('ok', false, 'duplicado', true, 'juego', v_otro);
   end if;
 
   insert into public.inscritos (nombre, ficha, doc, juego) values (v_nombre, v_ficha, v_doc, p_juego);
